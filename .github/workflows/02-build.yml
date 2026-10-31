@@ -150,7 +150,11 @@ jobs:
           git fetch origin i18n
           # 获取整个 i18n/ 目录用于版本查找
           git checkout origin/i18n -- i18n/ 2>/dev/null || mkdir -p i18n
-          git checkout origin/i18n -- "config/do_not_translate.json"
+          if git checkout origin/i18n -- "config/do_not_translate.json" 2>/dev/null; then
+            echo "已从 i18n 分支获取禁止翻译列表"
+          else
+            echo "i18n 分支无禁止翻译列表，跳过"
+          fi
 
           # 查找最佳翻译文件：精确版本 → 最近新版 → 最近旧版 → 旧版平铺
           TRANS=""
