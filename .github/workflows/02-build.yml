@@ -2297,13 +2297,3 @@ jobs:
           files: release-dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 触发 Scoop 和 Homebrew 更新
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ needs.versioning.outputs.version }}"
-          IS_PRE="${{ needs.versioning.outputs.is_prerelease }}"
-          echo "触发下游更新, 版本: $VERSION, pre-release: $IS_PRE"
-          gh workflow run 03-update-scoop.yml -f version_tag="$VERSION" -f is_prerelease="$IS_PRE" || echo "⚠ 触发 Scoop 更新失败"
-          gh workflow run 04-update-homebrew.yml -f version_tag="$VERSION" -f is_prerelease="$IS_PRE" || echo "⚠ 触发 Homebrew 更新失败"

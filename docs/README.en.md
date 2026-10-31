@@ -10,14 +10,14 @@ An AI-driven localization toolchain for the [Zed Editor](https://github.com/zed-
 
 ## Download
 
-Get the pre-built binaries from [Releases](https://github.com/x6nux/zed-globalization/releases/latest):
+Get the pre-built binaries from [Releases](https://github.com/a15355447898a/zed-globalization/releases/latest):
 
 | Platform | File | Installation |
 |----------|------|-------------|
-| macOS (Universal) | `zedg-zh-cn-macos-universal-*.dmg` | `brew tap x6nux/zedg && brew install --cask zedg` ([more](#macos-installation)) |
+| macOS (Universal) | `zedg-zh-cn-macos-universal-*.dmg` | DMG manual install ([more](#macos-installation)) |
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG manual install |
 | macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG manual install |
-| Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | `scoop install zedg` ([more](#windows-scoop)) |
+| Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | Extract and run `ZedG.exe` |
 | Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | Extract and run `ZedG.exe` |
 | Linux (x64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | Extract to `/usr/local` |
 | Linux (x64 deb) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
@@ -28,42 +28,12 @@ Get the pre-built binaries from [Releases](https://github.com/x6nux/zed-globaliz
 
 ### macOS Installation
 
-**Stable (Recommended):**
-
-```bash
-brew tap x6nux/zedg
-brew install --cask zedg
-```
-
-**Preview (Pre-release):**
-
-```bash
-brew tap x6nux/zedg
-brew install --cask zedg-preview
-```
-
 **DMG Manual Install:**
 
 Download the DMG from Releases, open it and drag ZedG to Applications. Since the build is not Apple-signed, macOS will show a "damaged" warning on first launch. Run the following command to fix it:
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
-```
-
-**Windows Scoop:**
-
-Stable:
-
-```powershell
-scoop bucket add zedg https://github.com/x6nux/scoop-zedg
-scoop install zedg
-```
-
-Preview (Pre-release):
-
-```powershell
-scoop bucket add zedg https://github.com/x6nux/scoop-zedg
-scoop install zedg-preview
 ```
 
 ## Features
@@ -82,9 +52,6 @@ scoop install zedg-preview
 01-translate (cron/manual)   Detect new Zed releases, extract and translate strings
        |
 02-build                     Cross-platform compilation + patch_agent_env, create Release
-       |
-       ├── 03-update-scoop        Update Scoop Manifest
-       └── 04-update-homebrew     Update Homebrew Cask
 ```
 
 ## Local Usage
@@ -149,9 +116,7 @@ Compatible with any OpenAI-compatible API. Priority: CLI flag > env variable > d
 zed-globalization/
 ├── .github/workflows/
 │   ├── 01-translate.yml        # Scheduled scan + AI translation
-│   ├── 02-build.yml            # Cross-platform build + release
-│   ├── 03-update-scoop.yml    # Scoop Manifest update
-│   └── 04-update-homebrew.yml # Homebrew Cask update
+│   └── 02-build.yml            # Cross-platform build + release
 ├── config/
 │   └── glossary.yaml       # Translation glossary
 ├── i18n/                   # Translation files (zh-CN, ja, ko, etc.)
@@ -185,9 +150,9 @@ Multiple layers ensure Rust compilation safety during source replacement:
 
 [MIT](../LICENSE)
 
-[stars-url]: https://github.com/x6nux/zed-globalization/stargazers
-[stars-image]: https://img.shields.io/github/stars/x6nux/zed-globalization?style=flat-square&logo=github
-[download-url]: https://github.com/x6nux/zed-globalization/releases/latest
-[download-image]: https://img.shields.io/github/downloads/x6nux/zed-globalization/total?style=flat-square&logo=github
-[license-url]: https://github.com/x6nux/zed-globalization/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/x6nux/zed-globalization?style=flat-square
+[stars-url]: https://github.com/a15355447898a/zed-globalization/stargazers
+[stars-image]: https://img.shields.io/github/stars/a15355447898a/zed-globalization?style=flat-square&logo=github
+[download-url]: https://github.com/a15355447898a/zed-globalization/releases/latest
+[download-image]: https://img.shields.io/github/downloads/a15355447898a/zed-globalization/total?style=flat-square&logo=github
+[license-url]: https://github.com/a15355447898a/zed-globalization/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/a15355447898a/zed-globalization?style=flat-square

@@ -8,20 +8,20 @@
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=x6nux/zed-globalization&type=Date)](https://star-history.com/#x6nux/zed-globalization&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=a15355447898a/zed-globalization&type=Date)](https://star-history.com/#a15355447898a/zed-globalization&Date)
 
 > **Zed 汉化版** | Zed 中文版 | Zed Chinese | Zed Localized | Zed 多语言 | Zed 国际化 | Zed i18n | Zed l10n
 
 ## 下载安装
 
-从 [Releases](https://github.com/x6nux/zed-globalization/releases/latest) 下载对应平台的预编译包：
+从 [Releases](https://github.com/a15355447898a/zed-globalization/releases/latest) 下载对应平台的预编译包：
 
 | 平台 | 文件 | 安装方式 |
 |------|------|---------|
-| macOS (Universal) | `zedg-zh-cn-macos-universal-*.dmg` | `brew tap x6nux/zedg && brew install --cask zedg`（自动按架构选包，[更多方式](#macos-安装)） |
+| macOS (Universal) | `zedg-zh-cn-macos-universal-*.dmg` | DMG 手动安装（[更多方式](#macos-安装)） |
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 手动安装 |
 | macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 手动安装 |
-| Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | `scoop install zedg`（[更多方式](#windows-scoop-安装)） |
+| Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解压后运行 `ZedG.exe` |
 | Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | 解压后运行 `ZedG.exe` |
 | Linux (x64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | 解压到 `/usr/local` |
 | Linux (x64 deb) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
@@ -32,37 +32,6 @@
 
 ### macOS 安装
 
-**稳定版（推荐）：**
-
-```bash
-# 首次安装
-brew tap x6nux/zedg
-brew install --cask zedg
-
-# 手动更新
-brew update && brew upgrade --cask zedg
-```
-
-**预览版（Pre-release）：**
-
-```bash
-brew tap x6nux/zedg
-brew install --cask zedg-preview
-```
-
-> **自动更新（可选）：** 启用后 Homebrew 会每 12 小时自动检查并升级**所有**已安装的 formulae 和 cask（不支持仅指定单个包）。
-> ```bash
-> # 启用
-> brew tap homebrew/autoupdate
-> brew autoupdate start 43200 --upgrade
->
-> # 关闭
-> brew autoupdate stop
->
-> # 查看状态
-> brew autoupdate status
-> ```
-
 **DMG 手动安装：**
 
 从 Releases 下载 DMG（Universal Binary，同时支持 Apple Silicon 和 Intel），打开后将 ZedG 拖入 Applications。由于构建未经 Apple 签名，首次打开会提示"应用已损坏"，在终端执行以下命令即可：
@@ -70,35 +39,6 @@ brew install --cask zedg-preview
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 ```
-
-### Windows Scoop 安装
-
-**稳定版：**
-
-```powershell
-# 首次安装
-scoop bucket add zedg https://github.com/x6nux/scoop-zedg
-scoop install zedg
-
-# 手动更新
-scoop update zedg
-```
-
-**预览版（Pre-release）：**
-
-```powershell
-scoop bucket add zedg https://github.com/x6nux/scoop-zedg
-scoop install zedg-preview
-```
-
-> **自动更新（可选）：** 通过 Windows 计划任务每天定时更新（需要管理员权限）。
-> ```powershell
-> # 启用（每天中午 12:00 自动更新 ZedG）
-> schtasks /create /tn "ZedGUpdate" /tr "powershell -Command 'scoop update zedg'" /sc daily /st 12:00
->
-> # 关闭
-> schtasks /delete /tn "ZedGUpdate" /f
-> ```
 
 ## 特性
 
@@ -116,9 +56,6 @@ scoop install zedg-preview
 01-translate (定时/手动)   扫描 Zed 新版本，提取并翻译字符串
        |
 02-build                   三平台编译 + patch_agent_env 补丁，生成 Release
-       |
-       ├── 03-update-scoop      更新 Scoop Manifest
-       └── 04-update-homebrew   更新 Homebrew Cask
 ```
 
 ## 本地使用
@@ -190,9 +127,7 @@ cd zed && cargo build --release
 zed-globalization/
 ├── .github/workflows/
 │   ├── 01-translate.yml        # 定时扫描 + AI 翻译
-│   ├── 02-build.yml            # 多平台编译 + 发布
-│   ├── 03-update-scoop.yml    # Scoop Manifest 更新
-│   └── 04-update-homebrew.yml # Homebrew Cask 更新
+│   └── 02-build.yml            # 多平台编译 + 发布
 ├── config/
 │   └── glossary.yaml       # 翻译术语表
 ├── i18n/                   # 翻译文件（zh-CN, ja, ko 等）
@@ -227,12 +162,12 @@ zed-globalization/
 
 [MIT](LICENSE)
 
-[stars-url]: https://github.com/x6nux/zed-globalization/stargazers
-[stars-image]: https://img.shields.io/github/stars/x6nux/zed-globalization?style=flat-square&logo=github
-[download-url]: https://github.com/x6nux/zed-globalization/releases/latest
-[download-image]: https://img.shields.io/github/downloads/x6nux/zed-globalization/total?style=flat-square&logo=github
-[license-url]: https://github.com/x6nux/zed-globalization/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/x6nux/zed-globalization?style=flat-square
+[stars-url]: https://github.com/a15355447898a/zed-globalization/stargazers
+[stars-image]: https://img.shields.io/github/stars/a15355447898a/zed-globalization?style=flat-square&logo=github
+[download-url]: https://github.com/a15355447898a/zed-globalization/releases/latest
+[download-image]: https://img.shields.io/github/downloads/a15355447898a/zed-globalization/total?style=flat-square&logo=github
+[license-url]: https://github.com/a15355447898a/zed-globalization/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/a15355447898a/zed-globalization?style=flat-square
 
 ---
 
