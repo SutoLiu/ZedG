@@ -64,7 +64,7 @@ def main() -> int:
     total = count_crates(source_dir)
     print(f"Building {total} crates...", flush=True)
 
-    cmd = ["cargo", "build", "--release", f"--jobs={args.jobs}", "--locked"]
+    cmd = ["cargo", "build", "--release", f"--jobs={args.jobs}", "--locked", "-p", "zed", "-p", "cli"]
     if args.target:
         cmd.extend(["--target", args.target])
 
