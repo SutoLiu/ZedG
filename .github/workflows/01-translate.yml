@@ -2,9 +2,8 @@ name: 01 提取与翻译
 
 on:
   schedule:
-    # 北京时间周一至周五 00:00 / 08:00 / 16:00
-    - cron: "0 0,8 * * 1-5"
-    - cron: "0 16 * * 0-4"
+    # 北京时间周一至周五 12:00
+    - cron: "0 4 * * 1-5"
   workflow_dispatch:
     inputs:
       version:
