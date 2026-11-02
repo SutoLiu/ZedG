@@ -1,40 +1,39 @@
-# Zed Globalization — Zed 编辑器汉化版 / 中文版 / 多语言版
+# ZedG — Zed 编辑器简体中文版
 
 [![GitHub stars][stars-image]][stars-url]
 [![Github Downloads][download-image]][download-url]
 [![license][license-image]][license-url]
 
-[Zed 编辑器](https://github.com/zed-industries/zed) 汉化版（中文版），支持简体中文、繁体中文、日语、韩语等多语言。AI 驱动的全自动翻译与构建流水线，开箱即用。
+[Zed 编辑器](https://github.com/zed-industries/zed) 的简体中文版。AI 驱动的全自动翻译与构建流水线：跟随上游版本自动提取待译字符串、AI 翻译、替换源码并重新编译，开箱即用。
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=a15355447898a/zed-globalization&type=Date)](https://star-history.com/#a15355447898a/zed-globalization&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wenyinos/ZedG&type=Date)](https://star-history.com/#wenyinos/ZedG&Date)
 
-> **Zed 汉化版** | Zed 中文版 | Zed Chinese | Zed Localized | Zed 多语言 | Zed 国际化 | Zed i18n | Zed l10n
+> **Zed 汉化版** | Zed 简体中文版 | Zed 中文版 | Zed Chinese | Zed Simplified Chinese | Zed Localized | Zed i18n | Zed l10n
 
 ## 下载安装
 
-从 [Releases](https://github.com/a15355447898a/zed-globalization/releases/latest) 下载对应平台的预编译包：
+从 [Releases](https://github.com/wenyinos/ZedG/releases/latest) 下载对应平台的预编译包：
 
 | 平台 | 文件 | 安装方式 |
 |------|------|---------|
-| macOS (Universal) | `zedg-zh-cn-macos-universal-*.dmg` | DMG 手动安装（[更多方式](#macos-安装)） |
-| macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 手动安装 |
-| macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 手动安装 |
-| Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解压后运行 `ZedG.exe` |
-| Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | 解压后运行 `ZedG.exe` |
-| Linux (x64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | 解压到 `/usr/local` |
-| Linux (x64 deb) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
-| Linux (x64 rpm) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |
-| Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.tar.gz` | 解压到 `/usr/local` |
-| Linux (ARM64 deb) | `zedg-zh-cn-linux-aarch64-*.deb` | `sudo dpkg -i *.deb` |
-| Linux (ARM64 rpm) | `zedg-zh-cn-linux-aarch64-*.rpm` | `sudo dnf install *.rpm` |
+| Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解压后运行 `ZedG.exe` |
+| Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.msi` | 双击安装 |
+| Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | 解压到 `/usr/local` |
+| Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
+| Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |
+| macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 拖入 Applications（[说明](#macos-安装)） |
+| macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 拖入 Applications |
+| 源码补丁 | `zedg-zh-cn-source-*.tar.gz` | 供本地编译使用 |
+
+> 当前构建矩阵：Windows x86_64、Linux x86_64、macOS（Apple Silicon / Intel），共 4 个平台。暂不提供 Windows ARM64、Linux ARM64 与 macOS Universal 构建。
 
 ### macOS 安装
 
 **DMG 手动安装：**
 
-从 Releases 下载 DMG（Universal Binary，同时支持 Apple Silicon 和 Intel），打开后将 ZedG 拖入 Applications。由于构建未经 Apple 签名，首次打开会提示"应用已损坏"，在终端执行以下命令即可：
+从 Releases 下载对应架构的 DMG（Apple Silicon 选 `aarch64`，Intel 选 `x86_64`），打开后将 ZedG 拖入 Applications。由于构建未经 Apple 签名，首次打开会提示"应用已损坏"，在终端执行以下命令即可：
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
@@ -42,12 +41,14 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 
 ## 特性
 
+- **简体中文界面**：当前发布语言为 `zh-CN`，翻译引擎保留多语言能力，后续可按需扩展
 - AI 自动扫描识别需翻译的 Rust 源文件
 - 正则提取双引号字符串 + 代码上下文收集
 - AI 并发翻译，三级降级策略（JSON -> XML CDATA -> 编号格式）
+- 术语表约束 + 翻译一致性检查
 - 源码替换三层保护（过滤 + 语法修正 + 受保护区域跳过）
 - JSON <-> Excel 双向转换，支持人工校对
-- 跨平台构建（Windows / Linux / macOS），含应用图标
+- 跨平台构建（Windows x86_64 / Linux x86_64 / macOS），含应用图标
 - GitHub Actions 全自动流水线：扫描 -> 翻译 -> 构建 -> 发布
 
 ## 自动化流水线
@@ -130,15 +131,21 @@ zed-globalization/
 │   └── 02-build.yml            # 多平台编译 + 发布
 ├── config/
 │   └── glossary.yaml       # 翻译术语表
-├── i18n/                   # 翻译文件（zh-CN, ja, ko 等）
+├── i18n/                   # 翻译文件（当前发布 zh-CN）
 ├── src/zedl10n/
-│   ├── cli.py              # CLI 入口（scan/extract/translate/replace/convert/pipeline）
+│   ├── cli.py              # CLI 入口（scan/extract/translate/replace/consistency/release-notes 等）
 │   ├── scan.py             # AI 扫描识别待翻译文件
 │   ├── extract.py          # 正则提取字符串 + 上下文
 │   ├── translate.py        # AI 并发翻译（三级降级）
 │   ├── replace.py          # 源码替换（多级路径解析 + 三层保护）
+│   ├── fix_placeholders.py # 占位符错误修复
+│   ├── consistency.py      # 翻译一致性与术语表校验
+│   ├── release_notes.py    # Release Notes 获取与翻译
 │   ├── convert.py          # JSON <-> Excel 转换
 │   └── utils.py            # 共享工具与配置
+├── scripts/
+│   ├── rebrand.py          # 品牌重命名 zed -> zedg
+│   └── patch_file_credentials.py
 ├── patch_agent_env.py      # 编译前补丁：修复 Agent 环境变量透传
 └── pyproject.toml
 ```
@@ -155,6 +162,7 @@ zed-globalization/
 ## 鸣谢
 
 - [Zed](https://github.com/zed-industries/zed)
+- [a15355447898a/zed-globalization](https://github.com/a15355447898a/zed-globalization) —— 本仓库 fork 的上游项目
 - [deevus/zed-windows-builds](https://github.com/deevus/zed-windows-builds)
 - [Nriver/zed-translation](https://github.com/Nriver/zed-translation)
 
@@ -162,12 +170,12 @@ zed-globalization/
 
 [MIT](LICENSE)
 
-[stars-url]: https://github.com/a15355447898a/zed-globalization/stargazers
-[stars-image]: https://img.shields.io/github/stars/a15355447898a/zed-globalization?style=flat-square&logo=github
-[download-url]: https://github.com/a15355447898a/zed-globalization/releases/latest
-[download-image]: https://img.shields.io/github/downloads/a15355447898a/zed-globalization/total?style=flat-square&logo=github
-[license-url]: https://github.com/a15355447898a/zed-globalization/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/a15355447898a/zed-globalization?style=flat-square
+[stars-url]: https://github.com/wenyinos/ZedG/stargazers
+[stars-image]: https://img.shields.io/github/stars/wenyinos/ZedG?style=flat-square&logo=github
+[download-url]: https://github.com/wenyinos/ZedG/releases/latest
+[download-image]: https://img.shields.io/github/downloads/wenyinos/ZedG/total?style=flat-square&logo=github
+[license-url]: https://github.com/wenyinos/ZedG/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/wenyinos/ZedG?style=flat-square
 
 ---
 
@@ -175,8 +183,8 @@ zed-globalization/
 <summary>关键词 / Keywords</summary>
 
 Zed 汉化版, Zed 中文版, Zed 编辑器汉化, Zed 编辑器中文版, Zed 编辑器中文, Zed 中文汉化,
-Zed 多语言版本, Zed 国际化, Zed 本地化, Zed 翻译, Zed 简体中文, Zed 繁体中文,
-Zed Chinese, Zed Japanese, Zed Korean, Zed Localization, Zed Globalization,
+Zed 简体中文, Zed 简体中文版, Zed 本地化, Zed 翻译, Zed 国际化,
+Zed Chinese, Zed Simplified Chinese, Zed Localization, Zed Globalization,
 Zed i18n, Zed l10n, Zed Translation, Zed Editor Chinese, Zed Editor Localized,
 Zed 代替 VSCode, Zed 代替 Cursor, Rust 编辑器中文版, 高性能编辑器汉化
 
