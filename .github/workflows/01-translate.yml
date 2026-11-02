@@ -2,8 +2,8 @@ name: 01 提取与翻译
 
 on:
   schedule:
-    # 北京时间周一至周五 12:00
-    - cron: "0 4 * * 1-5"
+    # 每天北京时间 12:00
+    - cron: "0 4 * * *"
   workflow_dispatch:
     inputs:
       version:
@@ -167,6 +167,9 @@ jobs:
     needs: check-version
     if: needs.check-version.outputs.has_update == 'true'
     runs-on: ubuntu-latest
+    env:
+      # 未配置 AI 密钥时跳过翻译步骤，直接沿用已有译文出包
+      HAS_AI_KEY: ${{ secrets.AI_API_KEY != '' }}
     strategy:
       matrix: ${{ fromJSON(needs.check-version.outputs.matrix) }}
       max-parallel: 1 # 串行执行，避免 i18n 分支推送冲突
@@ -352,6 +355,7 @@ jobs:
           echo "翻译文件: $TRANS_FILE ($(wc -c < "$TRANS_FILE") bytes)"
 
       - name: AI 翻译
+        if: env.HAS_AI_KEY == 'true'
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
@@ -371,6 +375,7 @@ jobs:
             --lang "$TARGET_LANG"
 
       - name: 修复占位符错误并清理无效条目
+        if: env.HAS_AI_KEY == 'true'
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
