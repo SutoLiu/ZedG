@@ -1243,6 +1243,12 @@ jobs:
           git clone ${{ env.ZED_REPO }} zed
           cd zed && git checkout $BUILD_VERSION
 
+      - name: 安装 x86_64 Rust target
+        run: |
+          cd zed
+          rustup target add x86_64-apple-darwin
+          rustup target list --installed
+
       - name: 下载本地化补丁
         uses: actions/download-artifact@v4
         with:
