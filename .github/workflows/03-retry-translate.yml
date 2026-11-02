@@ -29,9 +29,9 @@ on:
         type: boolean
         default: false
 
-  # 需要每天自动补翻时，取消下面两行注释
-  # schedule:
-  #   - cron: "0 5 * * *"   # 每天北京时间 13:00
+  # 每天北京时间 13:00 自动补翻，与 01 的 12:00 错开
+  schedule:
+    - cron: "0 5 * * *"
 
 permissions:
   contents: write
@@ -85,7 +85,12 @@ jobs:
       - name: 确定版本与参数
         id: params
         run: |
-          V="${{ inputs.version }}"
+          # schedule 触发时 inputs 为空或渲染成字符串 null，统一兜底
+          sane() {
+            case "$1" in ""|"null") echo "$2" ;; *) echo "$1" ;; esac
+          }
+
+          V=$(sane "${{ inputs.version }}" "")
           if [ -z "$V" ]; then
             V=$(ls -d i18n/v*/ 2>/dev/null | sed 's|i18n/||;s|/||' | sort -V | tail -1)
           fi
@@ -94,14 +99,9 @@ jobs:
             exit 1
           fi
 
-          LANG_V="${{ inputs.lang }}"
-          LANG_V="${LANG_V:-zh-CN}"
-
-          LIMIT_V="${{ inputs.limit }}"
-          LIMIT_V="${LIMIT_V:-800}"
-
-          CONC_V="${{ inputs.concurrency }}"
-          CONC_V="${CONC_V:-5}"
+          LANG_V=$(sane "${{ inputs.lang }}" "zh-CN")
+          LIMIT_V=$(sane "${{ inputs.limit }}" "800")
+          CONC_V=$(sane "${{ inputs.concurrency }}" "5")
 
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "lang=$LANG_V" >> $GITHUB_OUTPUT
