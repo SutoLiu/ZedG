@@ -68,19 +68,21 @@ jobs:
           fi
           echo "AI 密钥已配置"
 
-      - name: 从 i18n 分支获取待译列表与现有译文
+      - name: 从 i18n 分支获取现有译文
         run: |
           if ! git fetch origin i18n 2>/dev/null; then
-            echo "::error::i18n 分支不存在，请先运行 01 工作流"
+            echo "::error::i18n 分支不存在"
             exit 1
           fi
           git checkout origin/i18n -- string.json 2>/dev/null || true
+          git checkout origin/i18n -- string_context.json 2>/dev/null || true
+          git checkout origin/i18n -- scan_result.json 2>/dev/null || true
           git checkout origin/i18n -- i18n/ 2>/dev/null || true
-          if [ ! -f string.json ]; then
-            echo "::error::i18n 分支缺少 string.json"
-            exit 1
+          if [ -f string.json ]; then
+            echo "待译列表: $(wc -c < string.json) 字节"
+          else
+            echo "::warning::i18n 分支暂无 string.json，将在克隆源码后重新提取"
           fi
-          echo "待译列表: $(wc -c < string.json) 字节"
 
       - name: 确定版本与参数
         id: params
@@ -123,6 +125,13 @@ jobs:
           git clone --depth 1 --branch "$V" $ZED_REPO zed 2>/dev/null \
             || git clone --depth 1 $ZED_REPO zed
           echo "源码就绪: $(du -sh zed | cut -f1)"
+
+      - name: 待译列表缺失时从源码提取
+        if: ${{ hashFiles('string.json') == '' }}
+        run: |
+          echo "string.json 不存在，扫描源码提取（首次运行需要几分钟）..."
+          python3 -c "from zedl10n.scan import find_all_rs_files; from zedl10n.extract import extract_all; files=[str(x) for x in find_all_rs_files('zed')]; extract_all(files, 'string.json', 'string_context.json'); print('提取完成: %d 个文件' % len(files))"
+          ls -lh string.json string_context.json
 
       - name: 补翻空译文
         env:
@@ -172,10 +181,18 @@ jobs:
           mkdir -p /tmp/i18n-branch/i18n
           cp -r /tmp/i18n-result/* /tmp/i18n-branch/i18n/
 
+          # 待译列表与上下文一并入库，后续运行无需重新提取
+          for f in string.json string_context.json scan_result.json; do
+            if [ -f "$f" ]; then cp "$f" /tmp/i18n-branch/; fi
+          done
+
           cd /tmp/i18n-branch
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f i18n/
+          for f in string.json string_context.json scan_result.json; do
+            if [ -f "$f" ]; then git add -f "$f"; fi
+          done
 
           if git diff --cached --quiet; then
             echo "翻译无变化，跳过提交"
