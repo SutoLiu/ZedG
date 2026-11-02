@@ -4,13 +4,13 @@
 [![Github Downloads][download-image]][download-url]
 [![license][license-image]][license-url]
 
-[简体中文](../README.md)|**English**|[日本語](README.ja.md)|[한국어](README.ko.md)
+[简体中文](../README.md)|**English**
 
 An AI-driven localization toolchain for the [Zed Editor](https://github.com/zed-industries/zed), with a fully automated translation and build pipeline.
 
 ## Download
 
-Get the pre-built binaries from [Releases](https://github.com/a15355447898a/zed-globalization/releases/latest):
+Get the pre-built binaries from [Releases](https://github.com/wenyinos/ZedG/releases/latest):
 
 | Platform | File | Installation |
 |----------|------|-------------|
@@ -150,9 +150,9 @@ Multiple layers ensure Rust compilation safety during source replacement:
 
 [MIT](../LICENSE)
 
-[stars-url]: https://github.com/a15355447898a/zed-globalization/stargazers
-[stars-image]: https://img.shields.io/github/stars/a15355447898a/zed-globalization?style=flat-square&logo=github
-[download-url]: https://github.com/a15355447898a/zed-globalization/releases/latest
-[download-image]: https://img.shields.io/github/downloads/a15355447898a/zed-globalization/total?style=flat-square&logo=github
-[license-url]: https://github.com/a15355447898a/zed-globalization/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/a15355447898a/zed-globalization?style=flat-square
+[stars-url]: https://github.com/wenyinos/ZedG/stargazers
+[stars-image]: https://img.shields.io/github/stars/wenyinos/ZedG?style=flat-square&logo=github
+[download-url]: https://github.com/wenyinos/ZedG/releases/latest
+[download-image]: https://img.shields.io/github/downloads/wenyinos/ZedG/total?style=flat-square&logo=github
+[license-url]: https://github.com/wenyinos/ZedG/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/wenyinos/ZedG?style=flat-square
