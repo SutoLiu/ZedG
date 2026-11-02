@@ -42,8 +42,28 @@ def _count_translation_keys(translation_file: str) -> int:
         return 0
 
 
+def _translation_base_version(path: str) -> str:
+    """从翻译文件路径推断基准版本：i18n/v1.26.2/zh-CN.json -> v1.26.2"""
+    if not path:
+        return ""
+    parent = Path(path).parent.name
+    return parent if parent.startswith("v") and parent[1:2].isdigit() else ""
+
+
+def _translation_base_line(base: str, version: str) -> str:
+    """生成翻译基准说明行；与构建版本不一致时提示为沿用译文"""
+    if not base:
+        return ""
+    if base == version:
+        return f"**翻译基准**: {base}"
+    return (
+        f"**翻译基准**: {base}"
+        "（本版本未重新翻译，沿用该版本译文，新增字符串保持英文）"
+    )
+
+
 def _build_project_header(
-    version: str, lang: str, key_count: int,
+    version: str, lang: str, key_count: int, base_version: str = "",
 ) -> str:
     """生成项目说明头部"""
     lang_name = _LANG_NAMES.get(lang, lang)
@@ -60,6 +80,8 @@ def _build_project_header(
         f"**目标语言**: {lang_name} (`{lang}`)",
         "",
         f"**翻译键数**: {key_count:,}" if key_count else "",
+        "",
+        _translation_base_line(base_version, version),
         "",
         "**本补丁做了什么**：通过 AI 自动提取 Zed 源码中的用户可见字符串，"
         f"翻译为{lang_name}后直接替换源码并重新编译，"
@@ -84,9 +106,9 @@ def _build_project_header(
         f"sudo tar -xzf zedg-{lang_lower}-linux-x86_64-{version}.tar.gz -C /",
         "```",
         "",
-        "**Windows (x86_64 / ARM64)**",
+        "**Windows (x86_64)**",
         "",
-        "MSI 安装包：从上方下载对应架构的 `.msi` 文件，双击安装，支持静默安装：",
+        "MSI 安装包：从上方下载 `.msi` 文件，双击安装，支持静默安装：",
         "```powershell",
         f"msiexec /i zedg-{lang_lower}-windows-x86_64-{version}.msi /quiet",
         "```",
@@ -253,7 +275,9 @@ def generate_release_body(
     key_count = (
         _count_translation_keys(translation_file) if translation_file else 0
     )
-    header = _build_project_header(version, lang, key_count)
+    header = _build_project_header(
+        version, lang, key_count, _translation_base_version(translation_file),
+    )
 
     notes = fetch_release_notes(version)
     parts: list[str] = [header]
