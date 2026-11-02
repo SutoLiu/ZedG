@@ -78,7 +78,12 @@ def fix_translation_json(
 
     data: TranslationDict = load_json(trans_path)
     root = Path(source_root)
-    client = OpenAI(base_url=ai_cfg.base_url, api_key=ai_cfg.api_key)
+    client = OpenAI(
+        base_url=ai_cfg.base_url,
+        api_key=ai_cfg.api_key,
+        max_retries=0,  # 修复失败即删除条目，重试无意义且拖慢整体
+        timeout=120.0,
+    )
 
     fixed_count = 0
     removed_ph_count = 0

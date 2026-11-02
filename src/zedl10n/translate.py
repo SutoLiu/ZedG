@@ -34,13 +34,30 @@ from .utils import (
 log = logging.getLogger(__name__)
 
 
+def _retry_after_seconds(err: Exception, default: float = 30.0) -> float:
+    """从 429 响应头读取 Retry-After，缺失时用默认值，并限制在 1~120 秒"""
+    resp = getattr(err, "response", None)
+    headers = getattr(resp, "headers", None)
+    if headers:
+        for key in ("retry-after", "x-ratelimit-reset-requests"):
+            raw = headers.get(key)
+            if raw:
+                try:
+                    return min(max(float(raw), 1.0), 120.0)
+                except (TypeError, ValueError):
+                    continue
+    return default
+
+
 async def _call_ai(
     client: object,
     model: str,
     system_prompt: str,
     user_prompt: str,
 ) -> str:
-    """调用 AI API，内置网络错误重试"""
+    """调用 AI API：限流按 Retry-After 退避、配置错误快速失败、网络错误重试"""
+    import openai
+
     for attempt in range(5):
         try:
             response = await client.chat.completions.create(  # type: ignore[attr-defined]
@@ -50,11 +67,29 @@ async def _call_ai(
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0,
-                max_tokens=65535,
+                max_tokens=8192,
                 extra_body={"thinking": {"type": "disabled"}},
             )
             return (response.choices[0].message.content or "").strip()
-        except Exception as e:
+        except openai.RateLimitError as e:
+            # 429：遵循服务端 Retry-After，避免撞在同一个限流窗口里
+            wait = _retry_after_seconds(e)
+            if attempt < 4:
+                log.warning(
+                    "触发限流，等待 %.0fs 后重试 (%d/5)", wait, attempt + 1,
+                )
+                await asyncio.sleep(wait + random.uniform(0, 2))
+                continue
+            raise
+        except (
+            openai.AuthenticationError,
+            openai.PermissionDeniedError,
+            openai.BadRequestError,
+            openai.NotFoundError,
+        ):
+            # 密钥无效、无权限、参数或模型不存在：重试不会成功
+            raise
+        except Exception:
             if attempt < 4:
                 delay = (2**attempt) * 3 + random.uniform(0, 2)
                 log.debug("网络错误，等待 %.1fs 重试 (%d/5)", delay, attempt + 1)
@@ -250,7 +285,12 @@ async def _translate_async(
     """异步并发翻译"""
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(base_url=ai_cfg.base_url, api_key=ai_cfg.api_key)
+    client = AsyncOpenAI(
+        base_url=ai_cfg.base_url,
+        api_key=ai_cfg.api_key,
+        max_retries=0,  # 重试与限流退避统一由 _call_ai 控制，避免 SDK 叠加放大请求量
+        timeout=120.0,
+    )
     semaphore = asyncio.Semaphore(ai_cfg.concurrency)
 
     glossary_section = build_glossary_section(glossary_path)

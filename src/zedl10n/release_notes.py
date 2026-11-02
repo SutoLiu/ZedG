@@ -213,7 +213,12 @@ def translate_notes(
     """调用 AI 翻译 Release Notes，过长时按 Markdown 段落分批翻译"""
     from openai import OpenAI
 
-    client = OpenAI(base_url=ai_cfg.base_url, api_key=ai_cfg.api_key)
+    client = OpenAI(
+        base_url=ai_cfg.base_url,
+        api_key=ai_cfg.api_key,
+        max_retries=0,  # 重试由 _translate_with_retry 控制
+        timeout=120.0,
+    )
 
     if len(notes) <= _MAX_CHUNK_CHARS:
         result = _translate_with_retry(notes, lang, ai_cfg, client)

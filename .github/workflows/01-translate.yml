@@ -356,6 +356,7 @@ jobs:
 
       - name: AI 翻译
         if: env.HAS_AI_KEY == 'true'
+        continue-on-error: true
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
@@ -376,6 +377,7 @@ jobs:
 
       - name: 修复占位符错误并清理无效条目
         if: env.HAS_AI_KEY == 'true'
+        continue-on-error: true
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}

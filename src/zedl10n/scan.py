@@ -136,7 +136,12 @@ async def _scan_file_list(
     if not file_list:
         return []
 
-    client = AsyncOpenAI(base_url=ai_cfg.base_url, api_key=ai_cfg.api_key)
+    client = AsyncOpenAI(
+        base_url=ai_cfg.base_url,
+        api_key=ai_cfg.api_key,
+        max_retries=0,  # 重试统一由上层控制，避免 SDK 叠加放大请求量
+        timeout=120.0,
+    )
     semaphore = asyncio.Semaphore(ai_cfg.concurrency)
     results: list[str] = []
     yes_count = 0
