@@ -89,7 +89,7 @@ gh workflow run 03-retry-translate.yml --repo wenyinos/ZedG \
 | 参数 | 默认 | 说明 |
 |------|------|------|
 | `version` | 空 | 目标版本，留空自动取 `i18n` 分支最新版本目录 |
-| `limit` | 800 | 单次最多补翻条数，`0` 表示不限 |
+| `limit` | 500 | 单次最多补翻条数，`0` 表示不限 |
 | `concurrency` | 5 | AI 并发数，免费额度紧张时建议 3-5 |
 | `chain` | false | 补翻完成后是否触发 02 重新构建发布 |
 

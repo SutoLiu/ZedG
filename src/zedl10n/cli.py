@@ -99,6 +99,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--limit", type=int, default=0,
         help="本次最多翻译多少条，0 表示不限（用于控制额度消耗）",
     )
+    p_tr.add_argument(
+        "--rejected-file", default="",
+        help="记录已判定无需翻译的条目，后续跳过（避免重复请求）",
+    )
     _add_ai_args(p_tr)
 
     # --- replace ---

@@ -19,7 +19,7 @@ on:
       limit:
         description: "本次最多补翻条数（0 为不限）"
         type: string
-        default: "800"
+        default: "500"
       concurrency:
         description: "AI 并发数（免费额度紧张时建议 3-5）"
         type: string
@@ -102,7 +102,7 @@ jobs:
           fi
 
           LANG_V=$(sane "${{ inputs.lang }}" "zh-CN")
-          LIMIT_V=$(sane "${{ inputs.limit }}" "800")
+          LIMIT_V=$(sane "${{ inputs.limit }}" "500")
           CONC_V=$(sane "${{ inputs.concurrency }}" "5")
 
           echo "version=$V" >> $GITHUB_OUTPUT
@@ -150,6 +150,7 @@ jobs:
             --source-root zed \
             --mode incremental \
             --retry-empty \
+            --rejected-file "i18n/${V}/${L}.rejected.json" \
             --limit "$LIMIT" \
             --lang "$L"
 

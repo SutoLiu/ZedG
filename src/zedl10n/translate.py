@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import random
 from pathlib import Path
@@ -32,6 +33,32 @@ from .utils import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def _load_rejected(path: str) -> set[str]:
+    """加载已判定无需翻译的条目，读取失败时返回空集合"""
+    if not path or not Path(path).exists():
+        return set()
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        return set(data) if isinstance(data, list) else set(data.keys())
+    except Exception as e:
+        log.warning("读取 rejected 文件失败: %s", e)
+        return set()
+
+
+def _save_rejected(path: str, items: set[str]) -> None:
+    """保存已判定无需翻译的条目，避免下次重复请求"""
+    if not path:
+        return
+    try:
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        Path(path).write_text(
+            json.dumps(sorted(items), ensure_ascii=False, indent=0),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        log.warning("写入 rejected 文件失败: %s", e)
 
 
 def _retry_after_seconds(err: Exception, default: float = 30.0) -> float:
@@ -283,8 +310,9 @@ async def _translate_async(
     source_root: str = "",
     retry_empty: bool = False,
     limit: int = 0,
+    rejected_path: str = "",
 ) -> TranslationDict:
-    """异步并发翻译：retry_empty 补翻空值，limit 限制本次条目数"""
+    """异步并发翻译：retry_empty 补翻空值，limit 限制条目数，rejected 跳过已判定无需翻译项"""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(
@@ -304,7 +332,12 @@ async def _translate_async(
     result: TranslationDict = {fp: dict(v) for fp, v in existing.items()}
     tasks: list[asyncio.Task] = []
 
+    rejected = _load_rejected(rejected_path)
+    if rejected:
+        log.info("已跳过 %d 条此前判定无需翻译的条目", len(rejected))
+
     picked = 0
+    picked_keys: list[tuple[str, str]] = []
     for file_path, strings in all_strings.items():
         if limit > 0 and picked >= limit:
             break
@@ -319,10 +352,11 @@ async def _translate_async(
             if (
                 mode == "full"
                 or s not in existing_entries
-                or (retry_empty and not cur)
+                or (retry_empty and not cur and s not in rejected)
             ):
                 to_translate[s] = ""
                 picked += 1
+                picked_keys.append((file_path, s))
         if not to_translate:
             continue
         raw_content = _read_source_file(file_path, source_root)
@@ -373,6 +407,20 @@ async def _translate_async(
         if not ai_fix_log:
             break
 
+    # 本次尝试后仍为空的条目记为「无需翻译」，否则下次会再次命中形成死循环
+    if retry_empty and rejected_path and picked_keys:
+        still_empty = {
+            s for fp, s in picked_keys
+            if not (result.get(fp) or {}).get(s)
+        }
+        if still_empty:
+            merged = rejected | still_empty
+            _save_rejected(rejected_path, merged)
+            log.info(
+                "本次 %d 条仍为空，已记为无需翻译，后续跳过（累计 %d 条）",
+                len(still_empty), len(merged),
+            )
+
     return result
 
 
@@ -387,6 +435,7 @@ def translate_all(
     source_root: str = "",
     retry_empty: bool = False,
     limit: int = 0,
+    rejected_path: str = "",
 ) -> None:
     """同步入口"""
     if ai_cfg is None:
@@ -400,7 +449,7 @@ def translate_all(
         _translate_async(
             all_strings, existing, mode, lang,
             glossary_path, ai_cfg, source_root,
-            retry_empty, limit,
+            retry_empty, limit, rejected_path,
         )
     )
     # 全角 ASCII 符号统一转半角，避免破坏 Rust 源码语法
@@ -439,4 +488,5 @@ def run(args: argparse.Namespace) -> None:
         source_root=getattr(args, "source_root", ""),
         retry_empty=getattr(args, "retry_empty", False),
         limit=getattr(args, "limit", 0),
+        rejected_path=getattr(args, "rejected_file", ""),
     )
