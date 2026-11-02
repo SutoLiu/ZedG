@@ -65,6 +65,34 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 03-retry-translate (手动)   不依赖新版本，单独补翻遗漏条目，不触发构建
 ```
 
+### 版本判定规则
+
+自动构建只跟随上游 **stable** 版本，pre-release 需要手动触发。
+
+| 情况 | 是否自动构建 | 说明 |
+|------|------------|------|
+| 上游发布 stable 新版本（如 `v1.27.0`） | ✅ | 次日 12:00 触发 |
+| 上游发布 pre-release（如 `v1.27.0-pre.1`） | ❌ | 定时任务不检查 pre-release |
+| 上游只推 commit 未发版 | ❌ | 仅识别 release tag |
+| 该 stable 版本本地已构建过 | ❌ | 按 Release tag 去重跳过 |
+| 每日补翻译（03 工作流） | ❌ | `chain=false`，只更新 i18n 分支 |
+
+去重规则：已发布的版本不会被重复构建。手动重建同一版本时，tag 会自动追加序号（`v1.26.2` → `v1.26.2.1`）。
+
+手动构建其它版本：
+
+```bash
+# 最新 pre-release
+gh workflow run 01-translate.yml --repo wenyinos/ZedG \
+  -f release_type=pre-release -f chain=true
+
+# 指定任意版本
+gh workflow run 02-build.yml --repo wenyinos/ZedG -f version=v1.27.0-pre.1
+
+# 重建已发布版本（tag 自动变为 v1.26.2.1）
+gh workflow run 02-build.yml --repo wenyinos/ZedG -f version=v1.26.2
+```
+
 ## 异步补翻译
 
 Zed 源码中约 6.5 万条待译字符串的译文为空。这些空值大部分是**本来就不需要翻译**的内容（标识符如 `future_choice`、源码路径、占位符等），但仍有约 5,300 条是可翻译的英文短语。
