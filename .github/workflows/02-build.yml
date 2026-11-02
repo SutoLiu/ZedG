@@ -757,7 +757,7 @@ jobs:
               }
           }
 
-          python3 "$env:GITHUB_WORKSPACE\script\ci-build.py" --source-dir C:\z --target aarch64-pc-windows-msvc --jobs 4 --retries 3
+          python3 "$env:GITHUB_WORKSPACE\script\ci-build.py" --source-dir C:\z --target aarch64-pc-windows-msvc --jobs 3 --retries 3
           $buildExit = $LASTEXITCODE
 
           if ($buildExit -eq 0) {
@@ -1909,6 +1909,17 @@ jobs:
             libssl-dev libudev-dev libclang-dev clang cmake mold rpm
           echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
+      - name: 增加 Swap
+        run: |
+          if [ ! -f /swapfile-extra ]; then
+            sudo fallocate -l 8G /swapfile-extra || \
+              sudo dd if=/dev/zero of=/swapfile-extra bs=1M count=8192
+            sudo chmod 600 /swapfile-extra
+            sudo mkswap /swapfile-extra
+            sudo swapon /swapfile-extra
+          fi
+          free -h
+
       - name: 克隆 Zed 源码并检出 Tag
         run: |
           git clone ${{ env.ZED_REPO }} zed
@@ -2007,7 +2018,7 @@ jobs:
           MONITOR_PID=$!
 
           set +e
-          python3 "$GITHUB_WORKSPACE/script/ci-build.py" --source-dir "$GITHUB_WORKSPACE/zed" --jobs 4
+          python3 "$GITHUB_WORKSPACE/script/ci-build.py" --source-dir "$GITHUB_WORKSPACE/zed" --jobs 3
           BUILD_EXIT=$?
           set -e
 
