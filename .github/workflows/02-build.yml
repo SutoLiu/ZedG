@@ -584,6 +584,20 @@ jobs:
       - name: 开启 Git Longpaths
         run: git config --system core.longpaths true
 
+      - name: 检查磁盘空间
+        shell: pwsh
+        run: |
+          Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } |
+            Select-Object Name,
+              @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}},
+              @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}} |
+            Format-Table | Out-String | Write-Host
+          $free = [math]::Round((Get-PSDrive C).Free/1GB,1)
+          Write-Host "当前工作盘 C 剩余 ${free} GB"
+          if ($free -lt 40) {
+            Write-Host "::warning::C 盘剩余仅 ${free}GB，Zed 编译可能存在空间风险"
+          }
+
       - name: 设置工作目录
         shell: pwsh
         run: |
