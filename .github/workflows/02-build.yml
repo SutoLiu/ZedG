@@ -680,12 +680,12 @@ jobs:
 
       - name: 增加 Swap
         run: |
-          if [ ! -f /swapfile ]; then
-            sudo fallocate -l 8G /swapfile || \
-              sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
+          if [ ! -f /swapfile-extra ]; then
+            sudo fallocate -l 8G /swapfile-extra || \
+              sudo dd if=/dev/zero of=/swapfile-extra bs=1M count=8192
+            sudo chmod 600 /swapfile-extra
+            sudo mkswap /swapfile-extra
+            sudo swapon /swapfile-extra
           fi
           free -h
 
@@ -790,7 +790,7 @@ jobs:
           MONITOR_PID=$!
 
           set +e
-          python3 "$GITHUB_WORKSPACE/script/ci-build.py" --source-dir "$GITHUB_WORKSPACE/zed" --jobs 2
+          python3 "$GITHUB_WORKSPACE/script/ci-build.py" --source-dir "$GITHUB_WORKSPACE/zed" --jobs 3
           BUILD_EXIT=$?
           set -e
 
@@ -1212,12 +1212,12 @@ jobs:
           path: macos-resources/
 
   # ===========================================================================
-  # 5b. macOS x86_64 编译（Intel）
+  # 5b. macOS x86_64 编译（在 arm64 runner 上交叉编译）
   # ===========================================================================
   build-macos-x86_64:
     needs: [versioning, prepare]
     if: ${{ needs.versioning.outputs.should_release == 'true' }}
-    runs-on: macos-15-intel
+    runs-on: macos-latest
     env:
       SCCACHE_DIR: /Users/runner/Library/Caches/Mozilla.sccache
       SCCACHE_IDLE_TIMEOUT: "0"

@@ -54,6 +54,7 @@ target/
 
 # 日志
 *.log
+logs_*/
 
 # macOS
 .DS_Store
