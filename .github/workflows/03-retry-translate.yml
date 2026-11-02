@@ -46,6 +46,8 @@ env:
 jobs:
   retry:
     runs-on: ubuntu-latest
+    env:
+      HAS_AI_KEY: ${{ secrets.AI_API_KEY != '' }}
     steps:
       - name: 检出仓库
         uses: actions/checkout@v4
@@ -56,19 +58,19 @@ jobs:
           python-version: "3.12"
 
       - name: 安装依赖
+        if: env.HAS_AI_KEY == 'true'
         run: pip install ".[ai]"
 
       - name: 检查 AI 密钥
-        env:
-          AI_KEY: ${{ secrets.AI_API_KEY }}
         run: |
-          if [ -z "$AI_KEY" ]; then
-            echo "::error::未配置 AI_API_KEY，无法执行补翻译"
-            exit 1
+          if [ "$HAS_AI_KEY" != "true" ]; then
+            echo "::notice::未配置 AI_API_KEY，本次跳过补翻译（不视为失败）"
+          else
+            echo "AI 密钥已配置"
           fi
-          echo "AI 密钥已配置"
 
       - name: 从 i18n 分支获取现有译文
+        if: env.HAS_AI_KEY == 'true'
         run: |
           if ! git fetch origin i18n 2>/dev/null; then
             echo "::error::i18n 分支不存在"
@@ -86,6 +88,7 @@ jobs:
 
       - name: 确定版本与参数
         id: params
+        if: env.HAS_AI_KEY == 'true'
         run: |
           # schedule 触发时 inputs 为空或渲染成字符串 null，统一兜底
           sane() {
@@ -119,6 +122,7 @@ jobs:
           fi
 
       - name: 克隆 Zed 源码（仅用于提供翻译上下文）
+        if: env.HAS_AI_KEY == 'true'
         env:
           V: ${{ steps.params.outputs.version }}
         run: |
@@ -127,13 +131,14 @@ jobs:
           echo "源码就绪: $(du -sh zed | cut -f1)"
 
       - name: 待译列表缺失时从源码提取
-        if: ${{ hashFiles('string.json') == '' }}
+        if: env.HAS_AI_KEY == 'true' && hashFiles('string.json') == ''
         run: |
           echo "string.json 不存在，扫描源码提取（首次运行需要几分钟）..."
           python3 -c "from zedl10n.scan import find_all_rs_files; from zedl10n.extract import extract_all; files=[str(x) for x in find_all_rs_files('zed')]; extract_all(files, 'string.json', 'string_context.json'); print('提取完成: %d 个文件' % len(files))"
           ls -lh string.json string_context.json
 
       - name: 补翻空译文
+        if: env.HAS_AI_KEY == 'true'
         env:
           AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
@@ -155,6 +160,7 @@ jobs:
             --lang "$L"
 
       - name: 统计覆盖率
+        if: env.HAS_AI_KEY == 'true'
         env:
           V: ${{ steps.params.outputs.version }}
           L: ${{ steps.params.outputs.lang }}
@@ -169,6 +175,7 @@ jobs:
           echo "剩余待补: $((TOTAL - FILLED)) 条"
 
       - name: 推回 i18n 分支
+        if: env.HAS_AI_KEY == 'true'
         env:
           V: ${{ steps.params.outputs.version }}
           L: ${{ steps.params.outputs.lang }}
@@ -204,7 +211,7 @@ jobs:
           fi
 
       - name: 触发构建发布（可选）
-        if: inputs.chain == true
+        if: env.HAS_AI_KEY == 'true' && inputs.chain == true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

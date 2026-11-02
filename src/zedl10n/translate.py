@@ -135,6 +135,8 @@ async def _fetch_translation(
     system_prompt: str,
 ) -> dict[str, str]:
     """通过 JSON → XML(CDATA) → 编号格式 三级降级获取翻译结果"""
+    import openai
+
     user_prompt = build_user_prompt(file_path, strings, file_content)
 
     # 第一级: JSON 格式重试 3 次
@@ -144,6 +146,9 @@ async def _fetch_translation(
             result = parse_json_response(raw)
             if result:
                 return result
+        except openai.AuthenticationError:
+            # 密钥无效，向上抛出由调用方中止整个任务
+            raise
         except Exception as e:
             log.warning("翻译失败 %s: %s", file_path, e)
             return {}
@@ -387,9 +392,19 @@ async def _translate_async(
     )
     pbar = ProgressBar(total, desc="翻译")
 
+    import openai
+
     fail_count = 0
+    auth_aborted = False
     for coro in asyncio.as_completed(tasks):
-        fp, translations = await coro
+        try:
+            fp, translations = await coro
+        except openai.AuthenticationError:
+            log.error("AI 密钥无效或已失效，中止剩余批次")
+            auth_aborted = True
+            for t in tasks:
+                t.cancel()
+            break
         if translations:
             result.setdefault(fp, {}).update(translations)
         else:
@@ -407,8 +422,9 @@ async def _translate_async(
         if not ai_fix_log:
             break
 
-    # 本次尝试后仍为空的条目记为「无需翻译」，否则下次会再次命中形成死循环
-    if retry_empty and rejected_path and picked_keys:
+    # 本次尝试后仍为空的条目记为「无需翻译」，否则下次会再次命中形成死循环。
+    # 认证失败导致的中止不能计入，否则会把本可翻译的条目永久跳过。
+    if retry_empty and rejected_path and picked_keys and not auth_aborted:
         still_empty = {
             s for fp, s in picked_keys
             if not (result.get(fp) or {}).get(s)
