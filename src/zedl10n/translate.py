@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import random
+import re
 from pathlib import Path
 
 from .batch import split_batch
@@ -33,6 +34,42 @@ from .utils import (
 )
 
 log = logging.getLogger(__name__)
+
+
+_PATH_LIKE = re.compile(r"^(https?://|/|[A-Za-z]:\\|\./|\.\./)")
+_IDENT_LIKE = re.compile(r"^[a-z0-9_.\-]+$")
+_NUMERIC_LIKE = re.compile(r"^[\d\s.,:%+\-*/]+$")
+
+
+def _translatability_score(text: str) -> int:
+    """给待翻字符串打可翻性分数，分数越高越像需要翻译的 UI 文案。
+
+    含空格、首字母大写、长度较大、纯 ASCII 的英文短语得分高；
+    标识符、路径、纯数字符号、含转义序列的测试数据得分低。
+    仅用于排序，不硬性排除，避免误杀 "Open" 这类短词。
+    """
+    t = text.strip()
+    if not t:
+        return -10
+
+    score = 0
+    if " " in t:
+        score += 3
+    if t[0].isupper():
+        score += 2
+    if len(t) > 8:
+        score += 2
+    if t.isascii():
+        score += 1
+    if _IDENT_LIKE.match(t):
+        score -= 5
+    if _NUMERIC_LIKE.match(t):
+        score -= 5
+    if _PATH_LIKE.match(t):
+        score -= 5
+    if "\\n" in t or "\\t" in t or "\\x" in t:
+        score -= 2
+    return score
 
 
 def _load_rejected(path: str) -> set[str]:
@@ -341,29 +378,39 @@ async def _translate_async(
     if rejected:
         log.info("已跳过 %d 条此前判定无需翻译的条目", len(rejected))
 
-    picked = 0
-    picked_keys: list[tuple[str, str]] = []
+    # 收集全部候选并按可翻性排序，优先把像 UI 文案的条目送审，
+    # 避免 limit 被标识符、路径等低价值条目提前耗尽
+    candidates: list[tuple[int, str, str]] = []
     for file_path, strings in all_strings.items():
-        if limit > 0 and picked >= limit:
-            break
-        to_translate: dict[str, str] = {}
         if file_path not in result:
             result[file_path] = {}
         existing_entries = result[file_path]
         for s in strings:
-            if limit > 0 and picked >= limit:
-                break
             cur = existing_entries.get(s)
             if (
                 mode == "full"
                 or s not in existing_entries
                 or (retry_empty and not cur and s not in rejected)
             ):
-                to_translate[s] = ""
-                picked += 1
-                picked_keys.append((file_path, s))
-        if not to_translate:
-            continue
+                candidates.append((_translatability_score(s), file_path, s))
+
+    candidates.sort(key=lambda item: -item[0])
+    if limit > 0:
+        candidates = candidates[:limit]
+
+    picked = len(candidates)
+    picked_keys = [(fp, s) for _, fp, s in candidates]
+    if picked:
+        log.info(
+            "候选 %d 条，优先级最高示例: %s",
+            picked, [s for _, _, s in candidates[:3]],
+        )
+
+    by_file: dict[str, dict[str, str]] = {}
+    for _, file_path, s in candidates:
+        by_file.setdefault(file_path, {})[s] = ""
+
+    for file_path, to_translate in by_file.items():
         raw_content = _read_source_file(file_path, source_root)
         batches, file_content = split_batch(
             to_translate, system_prompt, file_path, raw_content,
