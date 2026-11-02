@@ -20,14 +20,18 @@
 |------|------|---------|
 | Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解压后运行 `ZedG.exe` |
 | Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.msi` | 双击安装 |
+| Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | 解压后运行 `ZedG.exe` |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | 解压到 `/usr/local` |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |
+| Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.tar.gz` | 解压到 `/usr/local` |
+| Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.deb` | `sudo dpkg -i *.deb` |
+| Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.rpm` | `sudo dnf install *.rpm` |
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 拖入 Applications（[说明](#macos-安装)） |
 | macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 拖入 Applications |
 | 源码补丁 | `zedg-zh-cn-source-*.tar.gz` | 供本地编译使用 |
 
-> 当前构建矩阵：Windows x86_64、Linux x86_64、macOS（Apple Silicon / Intel），共 4 个平台。暂不提供 Windows ARM64、Linux ARM64 与 macOS Universal 构建。
+> 当前构建矩阵：Windows（x86_64 / ARM64）、Linux（x86_64 / ARM64）、macOS（Apple Silicon / Intel），共 6 个平台。macOS 不提供 Universal 合并包，请按芯片架构选择。
 
 ### macOS 安装
 
