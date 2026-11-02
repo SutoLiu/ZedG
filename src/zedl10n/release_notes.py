@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 from pathlib import Path
 
 from .utils import AIConfig
@@ -47,12 +48,13 @@ def _build_project_header(
     """生成项目说明头部"""
     lang_name = _LANG_NAMES.get(lang, lang)
     lang_lower = lang.lower()
+    repo = os.environ.get("GITHUB_REPOSITORY", "wenyinos/ZedG")
 
     lines = [
         f"## ZedG {version}",
         "",
         f"> [Zed](https://zed.dev) 编辑器的{lang_name}本地化构建版本，"
-        "由 [zed-globalization](https://github.com/a15355447898a/zed-globalization) "
+        f"由 [ZedG](https://github.com/{repo}) "
         "自动翻译并编译。",
         "",
         f"**目标语言**: {lang_name} (`{lang}`)",
@@ -253,11 +255,13 @@ def generate_release_body(
 
     if notes:
         parts.append("## Zed 官方更新日志\n")
-        translated = translate_notes(notes, lang, ai_cfg)
+        translated = (
+            translate_notes(notes, lang, ai_cfg) if ai_cfg.api_key else ""
+        )
         if translated:
             parts.append(translated)
         else:
-            log.warning("翻译失败，使用英文原文")
+            log.warning("未配置 AI 或翻译失败，使用英文原文")
             parts.append(notes)
     else:
         log.warning("未获取到 Release Notes")
@@ -276,7 +280,10 @@ def run(args: argparse.Namespace) -> None:
         base_url=args.base_url, api_key=args.api_key,
         model=args.model, concurrency=args.concurrency,
     )
-    ai_cfg.validate()
+    if ai_cfg.api_key:
+        ai_cfg.validate()
+    else:
+        log.warning("未配置 AI_API_KEY，Release Notes 将使用英文原文")
     translation_file = getattr(args, "translation_file", "") or ""
     generate_release_body(
         args.version, args.lang, ai_cfg, args.output, translation_file,

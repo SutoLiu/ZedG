@@ -398,6 +398,7 @@ jobs:
           fi
 
           cp /tmp/string.json /tmp/string_context.json /tmp/scan_result.json /tmp/i18n-branch/
+          mkdir -p /tmp/i18n-branch/i18n
           cp -r /tmp/i18n-result/* /tmp/i18n-branch/i18n/
 
           cd /tmp/i18n-branch

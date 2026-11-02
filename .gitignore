@@ -51,6 +51,7 @@ target/
 
 # 工具生成目录
 .spec-workflow/
+.workbuddy/
 
 # 日志
 *.log

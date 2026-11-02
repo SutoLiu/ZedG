@@ -147,7 +147,7 @@ jobs:
       - name: 从 i18n 分支获取翻译文件和禁止翻译列表
         id: get_trans
         run: |
-          git fetch origin i18n
+          git fetch origin i18n 2>/dev/null || echo "i18n 分支不存在，将使用空翻译继续"
           # 获取整个 i18n/ 目录用于版本查找
           git checkout origin/i18n -- i18n/ 2>/dev/null || mkdir -p i18n
           if git checkout origin/i18n -- "config/do_not_translate.json" 2>/dev/null; then
@@ -576,7 +576,7 @@ jobs:
     if: ${{ needs.versioning.outputs.should_release == 'true' }}
     runs-on: windows-latest
     env:
-      BUILD_VERSION: ${{ needs.versioning.outputs.version }}
+      BUILD_VERSION: ${{ needs.versioning.outputs.upstream_version }}
       LANG_LOWER: ${{ needs.versioning.outputs.lang_lower }}
     steps:
       - name: 检出仓库
@@ -1578,7 +1578,7 @@ jobs:
       - name: 从 i18n 分支获取翻译文件
         id: release_trans
         run: |
-          git fetch origin i18n
+          git fetch origin i18n 2>/dev/null || echo "i18n 分支不存在，将使用空翻译继续"
           git checkout origin/i18n -- i18n/ 2>/dev/null || mkdir -p i18n
 
           TRANS=""
