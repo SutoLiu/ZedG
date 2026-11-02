@@ -91,6 +91,14 @@ def _build_parser() -> argparse.ArgumentParser:
     p_tr.add_argument(
         "--source-root", default="", help="Zed 源码根目录（用于传递完整源文件上下文）"
     )
+    p_tr.add_argument(
+        "--retry-empty", action="store_true",
+        help="增量模式下把空译文也纳入待翻译（用于补翻遗漏条目）",
+    )
+    p_tr.add_argument(
+        "--limit", type=int, default=0,
+        help="本次最多翻译多少条，0 表示不限（用于控制额度消耗）",
+    )
     _add_ai_args(p_tr)
 
     # --- replace ---

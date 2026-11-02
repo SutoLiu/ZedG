@@ -281,8 +281,10 @@ async def _translate_async(
     glossary_path: str,
     ai_cfg: AIConfig,
     source_root: str = "",
+    retry_empty: bool = False,
+    limit: int = 0,
 ) -> TranslationDict:
-    """异步并发翻译"""
+    """异步并发翻译：retry_empty 补翻空值，limit 限制本次条目数"""
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI(
@@ -302,13 +304,25 @@ async def _translate_async(
     result: TranslationDict = {fp: dict(v) for fp, v in existing.items()}
     tasks: list[asyncio.Task] = []
 
+    picked = 0
     for file_path, strings in all_strings.items():
+        if limit > 0 and picked >= limit:
+            break
         to_translate: dict[str, str] = {}
         if file_path not in result:
             result[file_path] = {}
+        existing_entries = result[file_path]
         for s in strings:
-            if mode == "full" or s not in result.get(file_path, {}):
+            if limit > 0 and picked >= limit:
+                break
+            cur = existing_entries.get(s)
+            if (
+                mode == "full"
+                or s not in existing_entries
+                or (retry_empty and not cur)
+            ):
                 to_translate[s] = ""
+                picked += 1
         if not to_translate:
             continue
         raw_content = _read_source_file(file_path, source_root)
@@ -329,8 +343,14 @@ async def _translate_async(
 
             tasks.append(asyncio.create_task(do_batch()))
 
+    if limit > 0 and picked >= limit:
+        log.info("已达本次上限 %d 条，剩余条目留待下次补翻", limit)
+
     total = len(tasks)
-    log.info("共 %d 个翻译批次，并发数 %d", total, ai_cfg.concurrency)
+    log.info(
+        "共 %d 个翻译批次（待翻 %d 条），并发数 %d",
+        total, picked, ai_cfg.concurrency,
+    )
     pbar = ProgressBar(total, desc="翻译")
 
     fail_count = 0
@@ -365,6 +385,8 @@ def translate_all(
     lang: str = "zh-CN",
     ai_cfg: AIConfig | None = None,
     source_root: str = "",
+    retry_empty: bool = False,
+    limit: int = 0,
 ) -> None:
     """同步入口"""
     if ai_cfg is None:
@@ -378,6 +400,7 @@ def translate_all(
         _translate_async(
             all_strings, existing, mode, lang,
             glossary_path, ai_cfg, source_root,
+            retry_empty, limit,
         )
     )
     # 全角 ASCII 符号统一转半角，避免破坏 Rust 源码语法
@@ -414,4 +437,6 @@ def run(args: argparse.Namespace) -> None:
         args.lang,
         ai_cfg,
         source_root=getattr(args, "source_root", ""),
+        retry_empty=getattr(args, "retry_empty", False),
+        limit=getattr(args, "limit", 0),
     )

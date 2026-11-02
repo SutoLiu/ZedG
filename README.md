@@ -58,10 +58,44 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 ## 自动化流水线
 
 ```
-01-translate (定时/手动)   扫描 Zed 新版本，提取并翻译字符串
+01-translate (每天 12:00)   扫描上游新版本，提取并翻译字符串
        |
-02-build                   三平台编译 + patch_agent_env 补丁，生成 Release
+02-build                    6 平台编译 + patch_agent_env 补丁，生成 Release
+
+03-retry-translate (手动)   不依赖新版本，单独补翻遗漏条目，不触发构建
 ```
+
+## 异步补翻译
+
+Zed 源码中约 6.5 万条待译字符串的译文为空。这些空值大部分是**本来就不需要翻译**的内容（标识符如 `future_choice`、源码路径、占位符等），但仍有约 5,300 条是可翻译的英文短语。
+
+`03-retry-translate` 用于在**没有上游新版本**时单独提升翻译覆盖率，与发布流程完全解耦：
+
+| 特点 | 说明 |
+|------|------|
+| 不依赖新版本 | 直接对现有版本的 `string.json` 补翻 |
+| 不触发构建 | 结果只提交到 `i18n` 分支，不占用编译资源 |
+| 可分批执行 | `limit` 控制单次条数，适合限时免费 API |
+| 进度累积 | 已翻译的条目不会重复请求 |
+
+```bash
+# 每次补 800 条，并发 5
+gh workflow run 03-retry-translate.yml --repo wenyinos/ZedG \
+  -f version=v1.26.2 -f limit=800 -f concurrency=5
+```
+
+参数说明：
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `version` | 空 | 目标版本，留空自动取 `i18n` 分支最新版本目录 |
+| `limit` | 800 | 单次最多补翻条数，`0` 表示不限 |
+| `concurrency` | 5 | AI 并发数，免费额度紧张时建议 3-5 |
+| `chain` | false | 补翻完成后是否触发 02 重新构建发布 |
+
+需要每日自动补翻时，取消 `.github/workflows/03-retry-translate.yml` 中 `schedule` 段的注释即可。
+
+> 说明：`--retry-empty` 会把「AI 判定无需翻译」而返回空值的条目也纳入重试，因此存在一定重复尝试成本。建议仅在免费额度期内使用，日常新版本流程仍走默认增量模式（只翻新增字符串）。
 
 ## 本地使用
 
