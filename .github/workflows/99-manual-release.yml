@@ -59,7 +59,7 @@ jobs:
         run: |
           mkdir -p release-dist
           LANG_LOWER=$(echo "$L" | tr '[:upper:]' '[:lower:]')
-          find artifacts -mindepth 2 -maxdepth 2 -type f -exec cp {} release-dist/ \;
+          find artifacts -mindepth 2 -maxdepth 2 -type f -not -path "artifacts/l10n-patch/*" -exec cp {} release-dist/ \;
           cp artifacts/l10n-patch/l10n.patch "release-dist/zedg-${LANG_LOWER}-l10n-${V}.patch" 2>/dev/null || true
           cp artifacts/l10n-patch/l10n-source.tar.gz "release-dist/zedg-${LANG_LOWER}-source-${V}.tar.gz" 2>/dev/null || true
           cd release-dist
