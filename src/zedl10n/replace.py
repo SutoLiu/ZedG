@@ -58,14 +58,17 @@ _PROTECTED_RE = re.compile(
     r'br(#+)".*?"\1'               # br#"..."#
     r'|br"(?:[^"\\]|\\.)*"'        # br"..."
     r'|b"(?:[^"\\]|\\.)*"'         # b"..."
+    r'|(?<![A-Za-z0-9_])r(#+)".*?"\2'      # r#"..."#（正则/路径内容，转义写回会破坏）
+    r'|(?<![A-Za-z0-9_])r"[^"]*"'          # r"..."（同上）
     r'|#\[(?!error\b)[\w:]+\([^]]*?\)\]'  # #[attr(...)]（排除 #[error]）
-    # KeyContext 键与值: context.add("Workspace") / context.set("mode", "full")
-    # 参数允许一层括号嵌套（如 cx.keyboard_layout().name()）
-    r'|\b(?:context|ctx|key_context)\s*\.\s*(?:add|set)\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
+    # key context: dispatch_context.add("Terminal") / ctx.add("Onboarding")
+    # 译成中文后 keymap 里的 "context": "Terminal" 全部匹配不上
+    r'|\b(?:\w*[Cc]ontext|ctx)\s*\.\s*(?:add|set)\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
     # KeyBinding 绑定: KeyBinding::new("ctrl-enter", Action, Some("Terminal"))
-    # 第三个参数是 context 匹配串，同样不能翻译
     r'|\bKeyBinding::new\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
-    r'|\bKeyContext::parse\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)',
+    r'|\bKeyContext::(?:parse|new_with_defaults)\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
+    # 序列化类型标识符: fn serialized_item_kind() -> &'static str { "Terminal" }
+    r'|fn\s+serialized_item_kind\b[^{]*\{[^}]*\}',
     re.DOTALL,
 )
 

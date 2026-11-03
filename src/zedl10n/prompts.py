@@ -118,31 +118,6 @@ def build_entries_text(strings: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
-_ENCODER = None
-_ENCODER_UNAVAILABLE = False
-
-
-def estimate_tokens(text: str) -> int:
-    """使用 o200k_base 编码计算 token 数，乘 1.1 保守估算。
-
-    编码器进程内复用；编码表需首次联网下载，失败时降级为字符估算，
-    避免因网络问题中断整条翻译流程。
-    """
-    global _ENCODER, _ENCODER_UNAVAILABLE
-    if _ENCODER is None and not _ENCODER_UNAVAILABLE:
-        try:
-            import tiktoken
-
-            _ENCODER = tiktoken.get_encoding("o200k_base")
-        except Exception as e:
-            _ENCODER_UNAVAILABLE = True
-            log.warning("tiktoken 编码表不可用（%s），降级为字符估算", e)
-    if _ENCODER is not None:
-        return int(len(_ENCODER.encode(text, disallowed_special=())) * 1.1)
-    # 中文约 1 字 1 token、英文约 4 字符 1 token，按 3 字符/token 粗略估算
-    return int(len(text) / 3 * 1.1)
-
-
 def build_user_prompt(
     file_path: str, strings: dict[str, str], file_content: str = "",
 ) -> str:

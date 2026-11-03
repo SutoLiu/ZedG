@@ -103,6 +103,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--rejected-file", default="",
         help="记录已判定无需翻译的条目，后续跳过（避免重复请求）",
     )
+    p_tr.add_argument(
+        "--do-not-translate", default="",
+        help="禁翻清单 JSON 路径，清单内条目跳过翻译（加速增量）",
+    )
     _add_ai_args(p_tr)
 
     # --- replace ---
@@ -117,6 +121,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--do-not-translate", default="",
         help="禁止翻译列表 JSON 文件路径",
     )
+
+    # --- mark-untranslatable ---
+    p_mark = sub.add_parser(
+        "mark-untranslatable",
+        help="扫描译文空值，判定「确定无需翻译」的条目并写入禁翻清单",
+    )
+    p_mark.add_argument("--input", required=True, help="翻译 JSON 文件路径")
+    p_mark.add_argument(
+        "--do-not-translate", default="config/do_not_translate.json",
+        help="禁翻清单 JSON 路径（就地更新）",
+    )
+    p_mark.add_argument(
+        "--rules-only", action="store_true",
+        help="只用规则判定，不调用 AI",
+    )
+    p_mark.add_argument(
+        "--limit", type=int, default=0,
+        help="单次最多送 AI 判定的条目数，0 表示不限",
+    )
+    _add_ai_args(p_mark)
 
     # --- fix-placeholders ---
     p_fix = sub.add_parser(
@@ -228,6 +252,10 @@ def main() -> None:
         run(args)
     elif args.command == "fix-placeholders":
         from .fix_placeholders import run
+
+        run(args)
+    elif args.command == "mark-untranslatable":
+        from .untranslatable import run
 
         run(args)
     elif args.command == "convert":

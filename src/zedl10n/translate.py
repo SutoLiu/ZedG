@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from .batch import split_batch
+from .error_codes import report as report_error
 from .prompts import (
     SYSTEM_PROMPT_TEMPLATE,
     XML_FALLBACK_INSTRUCTION,
@@ -38,6 +39,10 @@ from .utils import (
 )
 
 log = logging.getLogger(__name__)
+
+# 流式保活间隔：无新 chunk 超过此时长视为连接僵死（代理/负载均衡空闲
+# 超时的典型表现——非流式大响应经常在生成期被中间层掐断），主动放弃重试。
+STREAM_IDLE_TIMEOUT = 120.0
 
 
 _PATH_LIKE = re.compile(r"^(https?://|/|[A-Za-z]:\\|\./|\.\./)")
@@ -123,22 +128,40 @@ async def _call_ai(
     system_prompt: str,
     user_prompt: str,
 ) -> str:
-    """调用 AI API：限流按 Retry-After 退避、配置错误快速失败、网络错误重试"""
+    """调用 AI API（流式）：流式保活 + 限流退避 + 配置错误快速失败。
+
+    流式的意义不在总耗时，而在连接活性：chunk 持续到达证明链路存活，
+    代理不会因空闲超时掐断长请求；chunk 间隔超过 STREAM_IDLE_TIMEOUT
+    视为链路僵死，主动重试。
+    """
     import openai
 
     for attempt in range(5):
         try:
-            response = await client.chat.completions.create(  # type: ignore[attr-defined]
+            stream = await client.chat.completions.create(  # type: ignore[attr-defined]
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0,
-                max_tokens=8192,
+                max_tokens=65535,
+                stream=True,
                 extra_body={"thinking": {"type": "disabled"}},
             )
-            return (response.choices[0].message.content or "").strip()
+            chunks: list[str] = []
+            while True:
+                try:
+                    raw = await asyncio.wait_for(
+                        stream.__anext__(), timeout=STREAM_IDLE_TIMEOUT,
+                    )
+                except StopAsyncIteration:
+                    break
+                if getattr(raw, "choices", None):
+                    delta = raw.choices[0].delta.content
+                    if delta:
+                        chunks.append(delta)
+            return "".join(chunks).strip()
         except openai.RateLimitError as e:
             # 429：遵循服务端 Retry-After，避免撞在同一个限流窗口里
             wait = _retry_after_seconds(e)
@@ -157,10 +180,10 @@ async def _call_ai(
         ):
             # 密钥无效、无权限、参数或模型不存在：重试不会成功
             raise
-        except Exception:
+        except Exception as e:
             if attempt < 4:
                 delay = (2**attempt) * 3 + random.uniform(0, 2)
-                log.debug("网络错误，等待 %.1fs 重试 (%d/5)", delay, attempt + 1)
+                report_error(log, e, f"重试 {attempt + 1}/5，等待 {delay:.1f}s")
                 await asyncio.sleep(delay)
                 continue
             raise
@@ -402,6 +425,7 @@ async def _translate_async(
     retry_empty: bool = False,
     limit: int = 0,
     rejected_path: str = "",
+    skip_sets: tuple[set[tuple[str, str]], set[str]] = (set(), set()),
 ) -> TranslationDict:
     """异步并发翻译：retry_empty 补翻空值，limit 限制条目数，rejected 跳过已判定无需翻译项"""
     from openai import AsyncOpenAI
@@ -427,6 +451,8 @@ async def _translate_async(
     if rejected:
         log.info("已跳过 %d 条此前判定无需翻译的条目", len(rejected))
 
+    skip_pairs, skip_global = skip_sets
+
     # 收集全部候选并按可翻性排序，优先把像 UI 文案的条目送审，
     # 避免 limit 被标识符、路径等低价值条目提前耗尽
     candidates: list[tuple[int, str, str]] = []
@@ -435,6 +461,9 @@ async def _translate_async(
             result[file_path] = {}
         existing_entries = result[file_path]
         for s in strings:
+            # 禁翻清单（untranslatable 自动标记）命中即跳过，避免重复送 AI
+            if s in skip_global or (file_path, s) in skip_pairs:
+                continue
             cur = existing_entries.get(s)
             if (
                 mode == "full"
@@ -548,6 +577,7 @@ def translate_all(
     retry_empty: bool = False,
     limit: int = 0,
     rejected_path: str = "",
+    do_not_translate: str = "",
 ) -> None:
     """同步入口"""
     if ai_cfg is None:
@@ -557,11 +587,20 @@ def translate_all(
     all_strings: TranslationDict = load_json(strings_path)
     existing = load_json(output_path) if Path(output_path).exists() else {}
 
+    from .untranslatable import load_skip_sets
+
+    skip_sets = load_skip_sets(do_not_translate)
+    if skip_sets[0] or skip_sets[1]:
+        log.info(
+            "已加载禁翻清单: %d 条文件级 + %d 条全局",
+            len(skip_sets[0]), len(skip_sets[1]),
+        )
+
     result = asyncio.run(
         _translate_async(
             all_strings, existing, mode, lang,
             glossary_path, ai_cfg, source_root,
-            retry_empty, limit, rejected_path,
+            retry_empty, limit, rejected_path, skip_sets,
         )
     )
     # 全角 ASCII 符号统一转半角，避免破坏 Rust 源码语法
@@ -601,4 +640,5 @@ def run(args: argparse.Namespace) -> None:
         retry_empty=getattr(args, "retry_empty", False),
         limit=getattr(args, "limit", 0),
         rejected_path=getattr(args, "rejected_file", ""),
+        do_not_translate=getattr(args, "do_not_translate", ""),
     )
