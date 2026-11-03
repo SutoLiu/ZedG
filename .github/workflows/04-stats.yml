@@ -1,0 +1,55 @@
+name: 04 翻译统计
+
+# 统计各语言翻译覆盖率，回写 README 的 STATS 区块。
+# 由 03 补翻译完成后自动触发，另设每日兜底。
+
+on:
+  workflow_run:
+    workflows: ["03 补翻译（不构建）"]
+    types: [completed]
+  schedule:
+    # 每天北京时间 14:00，在 03 的 13:00 之后
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stats
+  cancel-in-progress: true
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 获取 i18n 分支翻译数据
+        run: |
+          if ! git fetch origin i18n --depth 1 2>/dev/null; then
+            echo "::error::i18n 分支不存在，无法统计"
+            exit 1
+          fi
+          git checkout origin/i18n -- i18n/ 2>/dev/null || true
+          echo "发现语言目录:"
+          ls -d i18n/*/ 2>/dev/null | sed 's/^/  /' || echo "  （无）"
+
+      - name: 统计并回写 README
+        run: python3 scripts/gen_stats.py
+
+      - name: 提交更新
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          if git diff --cached --quiet; then
+            echo "统计结果无变化，跳过提交"
+          else
+            git commit -m "chore(docs): 更新翻译覆盖率统计"
+            git push
+            echo "✓ 已更新 README"
+          fi
