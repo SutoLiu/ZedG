@@ -68,7 +68,7 @@ jobs:
             echo "[$i/20] 产物未就绪，等待 15s..."
             sleep 15
           done
-          [ -n "$ASSET_X64" ] || { echo "::error::未找到 $TAG 的 Windows x64 产物"; exit 1; }
+          [ -n "$URL_X64" ] || { echo "::error::未找到 $TAG 的 Windows x64 产物"; exit 1; }
 
       - name: 生成 manifest
         if: env.SKIP != 'true'

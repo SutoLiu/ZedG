@@ -65,7 +65,7 @@ jobs:
             echo "[$i/20] 产物未就绪，等待 15s..."
             sleep 15
           done
-          [ -n "$ASSET_ARM" ] || { echo "::error::未找到 $TAG 的 macOS aarch64 DMG"; exit 1; }
+          [ -n "$URL_ARM" ] || { echo "::error::未找到 $TAG 的 macOS aarch64 DMG"; exit 1; }
 
       - name: 生成 Cask
         if: env.SKIP != 'true'
