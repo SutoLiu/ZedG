@@ -1,4 +1,13 @@
 {
-    "entries": [],
+    "entries": [
+        {"file": "zed/crates/workspace/src/workspace.rs", "original": "Workspace"},
+        {"file": "zed/crates/workspace/src/pane.rs", "original": "Pane"},
+        {"file": "zed/crates/onboarding/src/onboarding.rs", "original": "Onboarding"},
+        {"file": "zed/crates/theme/src/icon_theme.rs", "original": "Zed (Default)"},
+        {"file": "zed/crates/agent_ui/src/agent_panel.rs", "original": "Workspace"},
+        {"file": "zed/crates/agent_ui/src/agent_panel.rs", "original": "Terminal"},
+        {"file": "zed/crates/terminal_view/src/terminal_panel.rs", "original": "Terminal"},
+        {"file": "zed/crates/terminal/src/terminal.rs", "original": "Terminal"}
+    ],
     "global_entries": []
 }

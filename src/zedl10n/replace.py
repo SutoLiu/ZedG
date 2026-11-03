@@ -48,15 +48,24 @@ _ASCII_IDENTIFIER = re.compile(r'^[a-z][a-z0-9_-]*$')
 _ZH_PUNCT_BETWEEN_STRINGS = re.compile(r'(?<=\w")\s*[、，]\s*(?=")')
 _ZH_SEMICOLON_BETWEEN_STRINGS = re.compile(r'(?<=\w")\s*[；]\s*(?=")')
 
-# 不可替换区域：字节字符串 + 属性宏
+# 不可替换区域：字节字符串 + 属性宏 + 键位上下文调用
 # 字节字符串: br##"..."##, br#"..."#, br"...", b"..."
 # 属性宏: #[action(...)], #[serde(...)], #[derive(...)] 等
 # 注意: #[error("...")] 包含用户可见的错误消息，不应被保护
+# 键位上下文: context.add("Workspace") 等字符串是运行时匹配键，
+# 与 keymap JSON 的 context 定义精确匹配，翻译会导致快捷键静默失效
 _PROTECTED_RE = re.compile(
     r'br(#+)".*?"\1'               # br#"..."#
     r'|br"(?:[^"\\]|\\.)*"'        # br"..."
     r'|b"(?:[^"\\]|\\.)*"'         # b"..."
-    r'|#\[(?!error\b)[\w:]+\([^]]*?\)\]',  # #[attr(...)]（排除 #[error]）
+    r'|#\[(?!error\b)[\w:]+\([^]]*?\)\]'  # #[attr(...)]（排除 #[error]）
+    # KeyContext 键与值: context.add("Workspace") / context.set("mode", "full")
+    # 参数允许一层括号嵌套（如 cx.keyboard_layout().name()）
+    r'|\b(?:context|ctx|key_context)\s*\.\s*(?:add|set)\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
+    # KeyBinding 绑定: KeyBinding::new("ctrl-enter", Action, Some("Terminal"))
+    # 第三个参数是 context 匹配串，同样不能翻译
+    r'|\bKeyBinding::new\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)'
+    r'|\bKeyContext::parse\s*\((?:[^()]|\([^()]*(?:\([^()]*\)[^()]*)*\))*\)',
     re.DOTALL,
 )
 

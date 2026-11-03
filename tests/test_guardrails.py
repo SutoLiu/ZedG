@@ -4,7 +4,11 @@ import unittest
 from unittest import mock
 
 from zedl10n import translate
-from zedl10n.replace import _filter_replacements
+from zedl10n.replace import (
+    _filter_replacements,
+    _find_protected_ranges,
+    _replace_skip_protected,
+)
 from zedl10n.utils import (
     check_rust_paths,
     number_anonymous_placeholders,
@@ -115,6 +119,43 @@ class TranslateBatchGuardTest(unittest.IsolatedAsyncioTestCase):
                 object(), "model", "x.rs", {source: ""}, "", "prompt",
             )
         self.assertEqual(result[source], "")
+
+
+class KeyContextGuardTest(unittest.TestCase):
+    """keymap context 键翻译导致快捷键静默失效的回归测试（issue #1）"""
+
+    SOURCE = '''
+        let mut context = KeyContext::new_with_defaults();
+        context.add("Workspace");
+        key_context.add("Pane");
+        ctx.add("Onboarding");
+        context.set("keyboard_layout", cx.keyboard_layout().name().to_string());
+        cx.bind_keys([gpui::KeyBinding::new(
+            "ctrl-enter",
+            InlineAssist::default(),
+            Some("Terminal"),
+        )]);
+        let title = Label::new("Terminal");
+    '''
+
+    def _replace(self, original, new_value):
+        protected = _find_protected_ranges(self.SOURCE)
+        return _replace_skip_protected(
+            self.SOURCE, f'"{original}"', f'"{new_value}"', protected,
+        )[0]
+
+    def test_context_add_keys_protected(self):
+        for key in ("Workspace", "Pane", "Onboarding"):
+            self.assertIn(f'"{key}"', self._replace(key, "已翻译"))
+
+    def test_keybinding_context_protected(self):
+        self.assertIn('"Terminal"', self._replace("Terminal", "终端"))
+
+    def test_ui_label_outside_calls_still_replaced(self):
+        result = self._replace(
+            "Terminal", "终端",
+        )
+        self.assertIn('Label::new("终端")', result)
 
 
 if __name__ == "__main__":
