@@ -61,7 +61,7 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
        |
 02-build                    5 平台编译 + patch_agent_env 补丁，生成 Release
 
-03-retry-translate (手动)   不依赖新版本，单独补翻遗漏条目，不触发构建
+03-retry-translate (每天 13:00)  不依赖新版本，单独补翻遗漏条目，不触发构建
 ```
 
 ### 版本判定规则
@@ -100,6 +100,7 @@ Zed 源码中约 6.5 万条待译字符串的译文为空。这些空值大部�
 
 | 特点 | 说明 |
 |------|------|
+| **每日自动** | 北京时间 13:00 自动运行一轮，每次 500 条，无需手动 |
 | 不依赖新版本 | 直接对现有版本的 `string.json` 补翻 |
 | 不触发构建 | 结果只提交到 `i18n` 分支，不占用编译资源 |
 | 可分批执行 | `limit` 控制单次条数，适合限时免费 API |
@@ -120,7 +121,7 @@ gh workflow run 03-retry-translate.yml --repo wenyinos/ZedG \
 | `concurrency` | 5 | AI 并发数，免费额度紧张时建议 3-5 |
 | `chain` | false | 补翻完成后是否触发 02 重新构建发布 |
 
-需要每日自动补翻时，取消 `.github/workflows/03-retry-translate.yml` 中 `schedule` 段的注释即可。
+**默认每日自动运行**：北京时间每天 13:00（`cron: 0 5 * * *`），单次 500 条、并发 5，跑完只提交 `i18n` 分支，不触发构建。配置 AI 密钥后无需任何操作即会生效；如需暂停，注释掉 `.github/workflows/03-retry-translate.yml` 顶部的 `schedule` 段即可，手动触发不受影响。
 
 ### 优先级排序
 
