@@ -1591,22 +1591,16 @@ jobs:
           name: zed-macos-aarch64-bin
           path: bins/aarch64
 
-      - name: 下载 x86_64 二进制
-        uses: actions/download-artifact@v4
-        with:
-          name: zed-macos-x86_64-bin
-          path: bins/x86_64
-
       - name: 下载图标资源
         uses: actions/download-artifact@v4
         with:
           name: zed-macos-resources
           path: resources
 
-      - name: 打包 DMG（aarch64 + x86_64）
+      - name: 打包 DMG（aarch64）
         run: |
-          chmod +x bins/aarch64/zed bins/x86_64/zed bins/aarch64/cli bins/x86_64/cli
-          strip -x bins/aarch64/zed bins/x86_64/zed bins/aarch64/cli bins/x86_64/cli
+          chmod +x bins/aarch64/zed bins/aarch64/cli
+          strip -x bins/aarch64/zed bins/aarch64/cli
 
           # === 生成应用图标 ICNS（仅一次）===
           ICONSET_DIR="AppIcon.iconset"
@@ -1675,8 +1669,6 @@ jobs:
 
           echo "=== 打包 Apple Silicon (aarch64) ==="
           make_dmg bins/aarch64/zed "zedg-${LANG_LOWER}-macos-aarch64-${BUILD_VERSION}.dmg" bins/aarch64/cli
-          echo "=== 打包 Intel (x86_64) ==="
-          make_dmg bins/x86_64/zed "zedg-${LANG_LOWER}-macos-x86_64-${BUILD_VERSION}.dmg" bins/x86_64/cli
 
       - name: 上传产物
         uses: actions/upload-artifact@v4
@@ -1684,7 +1676,6 @@ jobs:
           name: zed-macos
           path: |
             zedg-${{ env.LANG_LOWER }}-macos-aarch64-${{ env.BUILD_VERSION }}.dmg
-            zedg-${{ env.LANG_LOWER }}-macos-x86_64-${{ env.BUILD_VERSION }}.dmg
 
 
   build-linux-aarch64:
