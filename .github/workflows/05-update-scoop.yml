@@ -7,6 +7,11 @@ name: 05 更新 Scoop Manifest
 on:
   release:
     types: [published]
+  # 02 构建用 GITHUB_TOKEN 创建 release，不会触发上方 release 事件，
+  # 因此监听构建工作流完成（旧仓库 Homebrew 工作流同样处理）。
+  workflow_run:
+    workflows: ["02 构建发行"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       version_tag:
@@ -28,6 +33,9 @@ jobs:
           EVENT_PRE: ${{ github.event.release.prerelease }}
           INPUT_TAG: ${{ inputs.version_tag }}
         run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ] && [ "${{ github.event.workflow_run.conclusion }}" != "success" ]; then
+            echo "构建未成功，跳过"; echo "SKIP=true" >> $GITHUB_ENV; exit 0
+          fi
           if [ -n "$INPUT_TAG" ]; then
             TAG="$INPUT_TAG"
           elif [ -n "$EVENT_TAG" ]; then
