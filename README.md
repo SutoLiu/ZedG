@@ -34,7 +34,9 @@ zh-CN  ██████████░░░░░░░░░░░░░░�
 |------|------|---------|
 | Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解压后运行 `ZedG.exe` |
 | Windows (x86_64) | `zedg-zh-cn-windows-x86_64-*.msi` | 双击安装 |
+| Windows (x86_64) | `zedg-setup-windows-x86_64-*.exe` | 安装向导（NSIS，含"覆盖官方 Zed"可选组件） |
 | Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | 解压后运行 `ZedG.exe` |
+| Windows (ARM64) | `zedg-setup-windows-aarch64-*.exe` | 安装向导（NSIS） |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | 解压到 `/usr/local` |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
 | Linux (x86_64) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |
@@ -45,6 +47,26 @@ zh-CN  ██████████░░░░░░░░░░░░░░�
 | 源码补丁 | `zedg-zh-cn-source-*.tar.gz` | 供本地编译使用 |
 
 > 当前构建矩阵：Windows（x86_64 / ARM64）、Linux（x86_64 / ARM64）、macOS（Apple Silicon），共 5 个平台。macOS 仅提供 Apple Silicon 构建，Intel 机型可使用源码补丁自行编译。
+>
+> Linux 包已捆绑 `libgit2` 运行时（`/usr/lib/zedg`），无需用户自行安装。
+
+### Windows（Scoop）
+
+```powershell
+scoop bucket add zedg https://github.com/wenyinos/scoop-zedg
+scoop install zedg
+```
+
+更新：`scoop update zedg`。Manifest 随 Release 自动更新。
+
+### macOS（Homebrew）
+
+```bash
+brew tap wenyinos/zedg
+brew install --cask zedg
+```
+
+更新：`brew upgrade --cask zedg`。Cask 随 Release 自动更新（仅 Apple Silicon）。
 
 ### macOS 安装
 
@@ -56,16 +78,29 @@ zh-CN  ██████████░░░░░░░░░░░░░░�
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 ```
 
+### 生态兼容（Linux / macOS，可选）
+
+让 ZedG 接管系统里的 `zed` 命令（生态工具、git difftool、终端识别），并注册应用入口：
+
+```bash
+./scripts/zedg-activate.sh            # 激活（创建 ~/.local/bin/zed 链接 + desktop 入口）
+./scripts/zedg-activate.sh --status   # 查看状态
+./scripts/zedg-activate.sh --revert   # 一键还原
+```
+
 ## 特性
 
 - **简体中文界面**：当前发布语言为 `zh-CN`，翻译引擎保留多语言能力，后续可按需扩展
 - AI 自动扫描识别需翻译的 Rust 源文件
 - 正则提取双引号字符串 + 代码上下文收集
-- AI 并发翻译，三级降级策略（JSON -> XML CDATA -> 编号格式）
+- AI 并发翻译，三级降级策略（JSON -> XML CDATA -> 编号格式），流式保活避免长响应断连
 - 术语表约束 + 翻译一致性检查
-- 源码替换三层保护（过滤 + 语法修正 + 受保护区域跳过）
+- 源码替换多层保护（过滤 + 语法修正 + 受保护区域跳过），覆盖 raw string、KeyContext/KeyBinding、Rust 路径、占位符顺序
+- 禁翻清单自动标记（规则 + AI），减少增量翻译重复请求
+- CI 错误短码输出，避免 AI 网关原始错误泄露到公开日志
 - JSON <-> Excel 双向转换，支持人工校对
-- 跨平台构建（Windows x86_64 / ARM64、Linux x86_64 / ARM64、macOS Apple Silicon），含应用图标
+- 跨平台构建（Windows x86_64 / ARM64、Linux x86_64 / ARM64、macOS Apple Silicon），含应用图标；Linux 包捆绑 libgit2 运行时
+- 分发渠道：GitHub Releases、Scoop（Windows）、Homebrew（macOS），随 Release 自动更新
 - GitHub Actions 全自动流水线：扫描 -> 翻译 -> 构建 -> 发布
 
 ## 自动化流水线
@@ -74,8 +109,13 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 01-translate (每天 12:00)   扫描上游新版本，提取并翻译字符串
        |
 02-build                    5 平台编译 + patch_agent_env 补丁，生成 Release
+       |
+       ├── 05-update-scoop       Release 后自动更新 Scoop manifest
+       └── 06-update-homebrew    Release 后自动更新 Homebrew cask
 
 03-retry-translate (每天 13:00)  不依赖新版本，单独补翻遗漏条目，不触发构建
+04-stats                         统计翻译覆盖率
+07-mark-untranslatable (每周)    扫描空值，扩充禁翻清单，减少增量翻译重复请求
 ```
 
 ### 版本判定规则

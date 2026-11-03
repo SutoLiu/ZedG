@@ -18,7 +18,9 @@
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 手動インストール |
 | macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 手動インストール |
 | Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | 解凍して `ZedG.exe` を実行 |
+| Windows (x64) | `zedg-setup-windows-x86_64-*.exe` | NSIS インストーラー |
 | Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | 解凍して `ZedG.exe` を実行 |
+| Windows (ARM64) | `zedg-setup-windows-aarch64-*.exe` | NSIS インストーラー |
 | Linux (x64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | `/usr/local` に解凍 |
 | Linux (x64 deb) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
 | Linux (x64 rpm) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |

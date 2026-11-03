@@ -18,7 +18,9 @@ Get the pre-built binaries from [Releases](https://github.com/wenyinos/ZedG/rele
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG manual install |
 | macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG manual install |
 | Windows (x64) | `zedg-zh-cn-windows-x86_64-*.zip` | Extract and run `ZedG.exe` |
+| Windows (x64) | `zedg-setup-windows-x86_64-*.exe` | NSIS installer |
 | Windows (ARM64) | `zedg-zh-cn-windows-aarch64-*.zip` | Extract and run `ZedG.exe` |
+| Windows (ARM64) | `zedg-setup-windows-aarch64-*.exe` | NSIS installer |
 | Linux (x64) | `zedg-zh-cn-linux-x86_64-*.tar.gz` | Extract to `/usr/local` |
 | Linux (x64 deb) | `zedg-zh-cn-linux-x86_64-*.deb` | `sudo dpkg -i *.deb` |
 | Linux (x64 rpm) | `zedg-zh-cn-linux-x86_64-*.rpm` | `sudo dnf install *.rpm` |
@@ -34,6 +36,20 @@ Download the DMG from Releases, open it and drag ZedG to Applications. Since the
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
+```
+
+**Homebrew (Apple Silicon):**
+
+```bash
+brew tap wenyinos/zedg
+brew install --cask zedg
+```
+
+**Scoop (Windows):**
+
+```powershell
+scoop bucket add zedg https://github.com/wenyinos/scoop-zedg
+scoop install zedg
 ```
 
 ## Features
