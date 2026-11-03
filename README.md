@@ -261,7 +261,7 @@ zed-globalization/
 ## 鸣谢
 
 - [Zed](https://github.com/zed-industries/zed)
-- [a15355447898a/zed-globalization](https://github.com/a15355447898a/zed-globalization) —— 本仓库 fork 的上游项目
+- [a15355447898a/zed-globalization](https://github.com/a15355447898a/zed-globalization) —— 本项目参考的上游实现
 - [deevus/zed-windows-builds](https://github.com/deevus/zed-windows-builds)
 - [Nriver/zed-translation](https://github.com/Nriver/zed-translation)
 
