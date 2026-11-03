@@ -373,7 +373,8 @@ jobs:
             --glossary config/glossary.yaml \
             --source-root zed \
             --mode "$EXTRACT_MODE" \
-            --lang "$TARGET_LANG"
+            --lang "$TARGET_LANG" \
+            --do-not-translate config/do_not_translate.json
 
       - name: 修复占位符错误并清理无效条目
         if: env.HAS_AI_KEY == 'true'

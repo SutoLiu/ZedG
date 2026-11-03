@@ -192,6 +192,11 @@ jobs:
 
           echo "trans_file=$TRANS" >> $GITHUB_OUTPUT
 
+      - name: 校验保护规则与响应解析
+        run: |
+          python3 tests/test_zedl10n.py
+          python3 -m unittest discover -s tests -p 'test_guardrails.py'
+
       - name: 执行本地化替换
         run: zedl10n replace --input "${{ steps.get_trans.outputs.trans_file }}" --source-root zed --do-not-translate config/do_not_translate.json
 
@@ -575,11 +580,37 @@ jobs:
           Copy-Item "conpty\build\native\runtimes\arm64\OpenConsole.exe" zed-dist\arm64\OpenConsole.exe
           Compress-Archive -Path zed-dist\* -DestinationPath "zedg-$env:LANG_LOWER-windows-x86_64-$env:BUILD_VERSION.zip"
 
+      - name: 安装 NSIS
+        shell: pwsh
+        run: |
+          if (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe") {
+            Write-Host "NSIS 已预装"; exit 0
+          }
+          for ($i = 1; $i -le 3; $i++) {
+            Write-Host "Chocolatey 安装 NSIS 尝试 $i/3..."
+            choco install nsis -y --no-progress 2>&1
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe")) {
+              Write-Host "NSIS 安装成功"; exit 0
+            }
+            if ($i -lt 3) { Write-Host "等待 30 秒后重试..."; Start-Sleep -Seconds 30 }
+          }
+          Write-Host "::error::NSIS 安装失败"; exit 1
+
+      - name: 构建 Windows 安装程序 (NSIS)
+        shell: pwsh
+        run: |
+          Copy-Item packaging\windows\zedg-setup.nsi .
+          (Get-Content zedg-setup.nsi -Raw) -replace 'VERSION_PLACEHOLDER', $env:BUILD_VERSION | Set-Content zedg-setup.nsi -Encoding utf8BOM
+          & "C:\Program Files (x86)\NSIS\makensis.exe" zedg-setup.nsi
+          Move-Item ..\zedg-setup.exe "zedg-setup-windows-x86_64-$env:BUILD_VERSION.exe"
+
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
           name: zed-windows
-          path: zedg-${{ env.LANG_LOWER }}-windows-x86_64-${{ env.BUILD_VERSION }}.zip
+          path: |
+            zedg-${{ env.LANG_LOWER }}-windows-x86_64-${{ env.BUILD_VERSION }}.zip
+            zedg-setup-windows-x86_64-${{ env.BUILD_VERSION }}.exe
 
 
   build-windows-aarch64:
@@ -920,11 +951,37 @@ jobs:
           Copy-Item "conpty\build\native\runtimes\arm64\OpenConsole.exe" zed-dist\arm64\OpenConsole.exe
           Compress-Archive -Path zed-dist\* -DestinationPath "zedg-$env:LANG_LOWER-windows-aarch64-$env:BUILD_VERSION.zip"
 
+      - name: 安装 NSIS
+        shell: pwsh
+        run: |
+          if (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe") {
+            Write-Host "NSIS 已预装"; exit 0
+          }
+          for ($i = 1; $i -le 3; $i++) {
+            Write-Host "Chocolatey 安装 NSIS 尝试 $i/3..."
+            choco install nsis -y --no-progress 2>&1
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "C:\Program Files (x86)\NSIS\makensis.exe")) {
+              Write-Host "NSIS 安装成功"; exit 0
+            }
+            if ($i -lt 3) { Write-Host "等待 30 秒后重试..."; Start-Sleep -Seconds 30 }
+          }
+          Write-Host "::error::NSIS 安装失败"; exit 1
+
+      - name: 构建 Windows ARM64 安装程序 (NSIS)
+        shell: pwsh
+        run: |
+          Copy-Item packaging\windows\zedg-setup.nsi .
+          (Get-Content zedg-setup.nsi -Raw) -replace 'VERSION_PLACEHOLDER', $env:BUILD_VERSION | Set-Content zedg-setup.nsi -Encoding utf8BOM
+          & "C:\Program Files (x86)\NSIS\makensis.exe" zedg-setup.nsi
+          Move-Item ..\zedg-setup.exe "zedg-setup-windows-aarch64-$env:BUILD_VERSION.exe"
+
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
           name: zed-windows-arm64
-          path: zedg-${{ env.LANG_LOWER }}-windows-aarch64-${{ env.BUILD_VERSION }}.zip
+          path: |
+            zedg-${{ env.LANG_LOWER }}-windows-aarch64-${{ env.BUILD_VERSION }}.zip
+            zedg-setup-windows-aarch64-${{ env.BUILD_VERSION }}.exe
 
   # ===========================================================================
   # 3c. Windows MSI 安装包构建（依赖 x64 和 arm64 产物）
@@ -1039,8 +1096,9 @@ jobs:
             libxcb-shape0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev \
             libxcb-randr0-dev libxcb-keysyms1-dev libxcb-util-dev \
             libgl1-mesa-dev libegl1-mesa-dev libfreetype6-dev libfontconfig1-dev \
-            libssl-dev libudev-dev libclang-dev clang cmake mold rpm
-          echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+            libssl-dev libudev-dev libclang-dev clang cmake mold rpm \
+            patchelf libgit2-dev
+          echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold -C link-args=-Wl,--disable-new-dtags,-rpath,\$ORIGIN/../lib/zedg" >> $GITHUB_ENV
 
       - name: 增加 Swap
         run: |
@@ -1262,6 +1320,14 @@ jobs:
         run: |
           objcopy --strip-debug zed/target/release/zed
           objcopy --strip-debug zed/target/release/cli
+
+          # issue #34: 捆绑 libgit2（用户机器缺 libgit2.so 时 zedg 无法启动）
+          LIBGIT2_SO=$(ldconfig -p | grep 'libgit2\.so' | head -1 | awk '{print $NF}')
+          [ -n "$LIBGIT2_SO" ] || { echo "::error::libgit2.so not found via ldconfig"; exit 1; }
+          LIBGIT2_SONAME=$(readlink -f "$LIBGIT2_SO" | xargs basename)
+          mkdir -p dist/usr/lib/zedg deb-pkg/usr/lib/zedg
+          cp -L "$LIBGIT2_SO" "dist/usr/lib/zedg/${LIBGIT2_SONAME}"
+          cp -L "$LIBGIT2_SO" "deb-pkg/usr/lib/zedg/${LIBGIT2_SONAME}"
 
           # === tar.gz 包 ===
           mkdir -p dist/usr/bin
@@ -1714,8 +1780,9 @@ jobs:
             libxcb-shape0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev \
             libxcb-randr0-dev libxcb-keysyms1-dev libxcb-util-dev \
             libgl1-mesa-dev libegl1-mesa-dev libfreetype6-dev libfontconfig1-dev \
-            libssl-dev libudev-dev libclang-dev clang cmake mold rpm
-          echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+            libssl-dev libudev-dev libclang-dev clang cmake mold rpm \
+            patchelf libgit2-dev
+          echo "RUSTFLAGS=-C linker=clang -C link-arg=-fuse-ld=mold -C link-args=-Wl,--disable-new-dtags,-rpath,\$ORIGIN/../lib/zedg" >> $GITHUB_ENV
 
       - name: 增加 Swap
         run: |
@@ -1934,6 +2001,14 @@ jobs:
           objcopy --strip-debug zed/target/release/zed
           objcopy --strip-debug zed/target/release/cli
 
+          # issue #34: 捆绑 libgit2（用户机器缺 libgit2.so 时 zedg 无法启动）
+          LIBGIT2_SO=$(ldconfig -p | grep 'libgit2\.so' | head -1 | awk '{print $NF}')
+          [ -n "$LIBGIT2_SO" ] || { echo "::error::libgit2.so not found via ldconfig"; exit 1; }
+          LIBGIT2_SONAME=$(readlink -f "$LIBGIT2_SO" | xargs basename)
+          mkdir -p dist/usr/lib/zedg deb-pkg/usr/lib/zedg
+          cp -L "$LIBGIT2_SO" "dist/usr/lib/zedg/${LIBGIT2_SONAME}"
+          cp -L "$LIBGIT2_SO" "deb-pkg/usr/lib/zedg/${LIBGIT2_SONAME}"
+
           mkdir -p dist/usr/bin
           mkdir -p dist/usr/libexec
           mkdir -p dist/usr/share/applications
@@ -2085,7 +2160,9 @@ jobs:
         run: |
           mkdir release-dist
           mv "artifacts/zed-windows/zedg-${LANG_LOWER}-windows-x86_64-${BUILD_VERSION}.zip" release-dist/ || echo "No Windows x86_64 artifact"
+          mv "artifacts/zed-windows/zedg-setup-windows-x86_64-${BUILD_VERSION}.exe" release-dist/ || echo "No Windows x86_64 NSIS"
           mv "artifacts/zed-windows-arm64/zedg-${LANG_LOWER}-windows-aarch64-${BUILD_VERSION}.zip" release-dist/ || echo "No Windows ARM64 artifact"
+          mv "artifacts/zed-windows-arm64/zedg-setup-windows-aarch64-${BUILD_VERSION}.exe" release-dist/ || echo "No Windows ARM64 NSIS"
           mv "artifacts/zed-windows-msi/zedg-${LANG_LOWER}-windows-x86_64-${BUILD_VERSION}.msi" release-dist/ || echo "No Windows x86_64 MSI"
           mv "artifacts/zed-linux/zedg-${LANG_LOWER}-linux-x86_64-${BUILD_VERSION}.tar.gz" release-dist/ || echo "No Linux x86_64 tar artifact"
           mv "artifacts/zed-linux/zedg-${LANG_LOWER}-linux-x86_64-${BUILD_VERSION}.deb" release-dist/ || echo "No Linux x86_64 deb artifact"
