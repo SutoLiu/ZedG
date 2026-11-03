@@ -1543,239 +1543,10 @@ jobs:
           name: zed-macos-resources
           path: macos-resources/
 
-  # ===========================================================================
-  # 5b. macOS x86_64 编译（在 arm64 runner 上交叉编译）
-  # ===========================================================================
-  build-macos-x86_64:
-    needs: [versioning, prepare]
-    if: ${{ needs.versioning.outputs.should_release == 'true' }}
-    runs-on: macos-latest
-    env:
-      SCCACHE_DIR: /Users/runner/Library/Caches/Mozilla.sccache
-      SCCACHE_IDLE_TIMEOUT: "0"
-      BUILD_VERSION: ${{ needs.versioning.outputs.upstream_version }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 安装 sccache
-        continue-on-error: true
-        uses: mozilla-actions/sccache-action@v0.0.3
-
-      - name: 检查 sccache 可用性
-        run: |
-          if command -v sccache &>/dev/null && sccache --version &>/dev/null; then
-            echo "SCCACHE_AVAILABLE=true" >> "$GITHUB_ENV"
-          else
-            echo "SCCACHE_AVAILABLE=false" >> "$GITHUB_ENV"
-            echo "⚠ sccache 不可用，将不使用编译缓存"
-          fi
-
-      - name: 克隆 Zed 源码并检出 Tag
-        run: |
-          git clone ${{ env.ZED_REPO }} zed
-          cd zed && git checkout $BUILD_VERSION
-
-      - name: 安装 x86_64 Rust target
-        run: |
-          cd zed
-          rustup target add x86_64-apple-darwin
-          rustup target list --installed
-
-      - name: 下载本地化补丁
-        uses: actions/download-artifact@v4
-        with:
-          name: l10n-patch
-
-      - name: 应用本地化补丁
-        run: cd zed && git apply ../l10n.patch
-
-      - name: 从 Artifact 恢复 sccache 缓存
-        if: env.SCCACHE_AVAILABLE == 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          CACHE_KEY="sccache-macos-x86_64"
-          PREV_RUN_ID=$(gh api \
-            "/repos/${{ github.repository }}/contents/sccache/${CACHE_KEY}.runid?ref=i18n" \
-            --jq '.content' 2>/dev/null | \
-            python3 -c "import base64,sys; print(base64.b64decode(sys.stdin.read()).decode().strip())" \
-            2>/dev/null || true)
-          [ -z "$PREV_RUN_ID" ] && echo "⚠ 无缓存索引，首次构建" && exit 0
-          ARTIFACT_ID=$(gh api \
-            "/repos/${{ github.repository }}/actions/runs/${PREV_RUN_ID}/artifacts" \
-            --jq ".artifacts[] | select(.name == \"${CACHE_KEY}\") | .id" 2>/dev/null || true)
-          [ -z "$ARTIFACT_ID" ] && echo "⚠ Artifact 不存在或已过期" && exit 0
-          echo "下载缓存 Artifact (ID: $ARTIFACT_ID)..."
-          curl -sL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${ARTIFACT_ID}/zip" \
-            -o /tmp/sccache-cache.zip
-          unzip -p /tmp/sccache-cache.zip "${CACHE_KEY}.tar.gz" | \
-            tar -xzf - -C / 2>/dev/null || true
-          rm -f /tmp/sccache-cache.zip
-          echo "✓ 缓存已恢复（Artifact）"
-          echo "PREV_ARTIFACT_ID=${ARTIFACT_ID}" >> "$GITHUB_ENV"
-          echo "SCCACHE_CACHE_HIT=artifact" >> "$GITHUB_ENV"
-
-      - name: 从 Cache 恢复 sccache 缓存（Artifact 失败时回退）
-        if: env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_CACHE_HIT != 'artifact'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            /Users/runner/Library/Caches/Mozilla.sccache
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: sccache-macos-x86_64
-
-      - name: 安装 Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin
-
-      - name: 启动 sccache
-        if: env.SCCACHE_AVAILABLE == 'true'
-        run: sccache --start-server && sccache --zero-stats
-
-      - name: 构建 x86_64
-        env:
-          RELEASE_CHANNEL: stable
-        run: |
-          if [ "$SCCACHE_AVAILABLE" = "true" ]; then
-            export RUSTC_WRAPPER=sccache
-          else
-            export RUSTC_WRAPPER=""
-          fi
-
-          MEM_LOG="/tmp/mem_monitor.csv"
-          echo "timestamp,used_mb,total_mb,swap_used_mb,swap_total_mb" > "$MEM_LOG"
-          (
-            TOTAL_MB=$(( $(sysctl -n hw.memsize) / 1024 / 1024 ))
-            PAGE_SIZE=$(vm_stat | head -1 | grep -oE '[0-9]+')
-            while true; do
-              FREE_PAGES=$(vm_stat | awk '/Pages free/ {print $NF}' | tr -d '.')
-              INACTIVE_PAGES=$(vm_stat | awk '/Pages inactive/ {print $NF}' | tr -d '.')
-              SPECULATIVE_PAGES=$(vm_stat | awk '/Pages speculative/ {print $NF}' | tr -d '.')
-              AVAIL_MB=$(( (${FREE_PAGES:-0} + ${INACTIVE_PAGES:-0} + ${SPECULATIVE_PAGES:-0}) * PAGE_SIZE / 1024 / 1024 ))
-              USED_MB=$(( TOTAL_MB - AVAIL_MB ))
-              SWAP_USED_MB=$(sysctl -n vm.swapusage | awk -F'[= ]+' '{for(i=1;i<=NF;i++) if($i=="used") printf "%d", $(i+1)}')
-              SWAP_TOTAL_MB=$(sysctl -n vm.swapusage | awk -F'[= ]+' '{for(i=1;i<=NF;i++) if($i=="total") printf "%d", $(i+1)}')
-              echo "$(date +%H:%M:%S),$USED_MB,$TOTAL_MB,${SWAP_USED_MB:-0},${SWAP_TOTAL_MB:-0}" >> "$MEM_LOG"
-              sleep 10
-            done
-          ) &
-          MONITOR_PID=$!
-
-          set +e
-          python3 "$GITHUB_WORKSPACE/script/ci-build.py" --source-dir "$GITHUB_WORKSPACE/zed" --target x86_64-apple-darwin --jobs 3
-          BUILD_EXIT=$?
-          set -e
-
-          kill $MONITOR_PID 2>/dev/null || true
-          PEAK_MEM=$(tail -n +2 "$MEM_LOG" | cut -d, -f2 | sort -n | tail -1)
-          PEAK_SWAP=$(tail -n +2 "$MEM_LOG" | cut -d, -f4 | sort -n | tail -1)
-          TOTAL_MEM=$(tail -n +2 "$MEM_LOG" | head -1 | cut -d, -f3)
-          SAMPLES=$(tail -n +2 "$MEM_LOG" | wc -l)
-          echo "===== 内存监控摘要 ====="
-          echo "物理内存: 峰值 ${PEAK_MEM}MB / 总计 ${TOTAL_MEM}MB"
-          echo "交换内存: 峰值 ${PEAK_SWAP}MB"
-          echo "采样记录数: $SAMPLES"
-          [ $BUILD_EXIT -ne 0 ] && exit $BUILD_EXIT
-
-          echo "=== 编译 CLI 辅助二进制 ==="
-          cargo build --release --package cli --target x86_64-apple-darwin --manifest-path "$GITHUB_WORKSPACE/zed/Cargo.toml"
-
-      - name: 停止 sccache
-        if: env.SCCACHE_AVAILABLE == 'true'
-        run: |
-          echo "========================================="
-          echo "         sccache 编译缓存统计 (x86_64)"
-          echo "========================================="
-          sccache --show-stats
-          HITS=$(sccache --show-stats 2>&1 | awk '/^Cache hits /{print $NF}' | head -1)
-          MISSES=$(sccache --show-stats 2>&1 | awk '/^Cache misses /{print $NF}' | head -1)
-          HITS=${HITS:-0}; MISSES=${MISSES:-0}; TOTAL=$((HITS + MISSES))
-          if [ "$TOTAL" -gt 0 ]; then
-            RATE=$(awk "BEGIN {printf \"%.1f\", $HITS/$TOTAL*100}")
-            echo ">>> 缓存命中: $HITS / $TOTAL ($RATE%)"
-          fi
-          echo "========================================="
-          sccache --stop-server || true
-
-      - name: 打包 sccache 缓存
-        if: always() && env.SCCACHE_AVAILABLE == 'true'
-        run: |
-          CACHE_KEY="sccache-macos-x86_64"
-          DIRS=()
-          [ -d "$HOME/Library/Caches/Mozilla.sccache" ] && DIRS+=("Users/runner/Library/Caches/Mozilla.sccache")
-          [ -d "$HOME/.cargo/registry" ] && DIRS+=("Users/runner/.cargo/registry")
-          [ -d "$HOME/.cargo/git" ]      && DIRS+=("Users/runner/.cargo/git")
-          if [ ${#DIRS[@]} -gt 0 ]; then
-            tar -czf "${CACHE_KEY}.tar.gz" -C / "${DIRS[@]}" 2>/dev/null || true
-          fi
-          echo "缓存归档大小: $(du -sh ${CACHE_KEY}.tar.gz 2>/dev/null | cut -f1 || echo '(未生成)')"
-
-      - name: 上传 sccache 缓存 Artifact
-        id: upload_artifact
-        if: always() && env.SCCACHE_AVAILABLE == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: sccache-macos-x86_64
-          path: sccache-macos-x86_64.tar.gz
-          retention-days: 30
-
-      - name: 更新缓存索引
-        if: always() && env.SCCACHE_AVAILABLE == 'true' && steps.upload_artifact.outcome == 'success'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          CACHE_KEY="sccache-macos-x86_64"
-          if [ -n "${PREV_ARTIFACT_ID:-}" ]; then
-            gh api -X DELETE \
-              "/repos/${{ github.repository }}/actions/artifacts/${PREV_ARTIFACT_ID}" \
-              && echo "✓ 已删除旧 Artifact" || true
-          fi
-          FILE_PATH="sccache/${CACHE_KEY}.runid"
-          CONTENT_B64=$(python3 -c "import base64; print(base64.b64encode('${{ github.run_id }}'.encode()).decode())")
-          FILE_SHA=$(gh api \
-            "/repos/${{ github.repository }}/contents/${FILE_PATH}?ref=i18n" \
-            --jq '.sha' 2>/dev/null || true)
-          if [ -n "$FILE_SHA" ]; then
-            gh api -X PUT "/repos/${{ github.repository }}/contents/${FILE_PATH}" \
-              -f message="chore: 更新 sccache 缓存索引 (${CACHE_KEY})" \
-              -f content="$CONTENT_B64" -f sha="$FILE_SHA" -f branch="i18n"
-          else
-            gh api -X PUT "/repos/${{ github.repository }}/contents/${FILE_PATH}" \
-              -f message="chore: 更新 sccache 缓存索引 (${CACHE_KEY})" \
-              -f content="$CONTENT_B64" -f branch="i18n"
-          fi
-          echo "✓ 缓存索引已更新 (Run ID: ${{ github.run_id }})"
-
-      - name: 保存 sccache 缓存（Artifact 失败时回退）
-        if: always() && env.SCCACHE_AVAILABLE == 'true' && steps.upload_artifact.outcome != 'success'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            /Users/runner/Library/Caches/Mozilla.sccache
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: sccache-macos-x86_64
-
-      - name: 上传 x86_64 二进制
-        uses: actions/upload-artifact@v4
-        with:
-          name: zed-macos-x86_64-bin
-          path: |
-            zed/target/x86_64-apple-darwin/release/zed
-            zed/target/x86_64-apple-darwin/release/cli
-
-  # ===========================================================================
-  # 5c. macOS DMG 打包（aarch64 + x86_64）
+  # 5c. macOS DMG 打包（Apple Silicon）
   # ===========================================================================
   build-macos-dmg:
-    needs: [versioning, build-macos-aarch64, build-macos-x86_64]
+    needs: [versioning, build-macos-aarch64]
     if: ${{ needs.versioning.outputs.should_release == 'true' }}
     runs-on: macos-latest
     env:
@@ -2219,7 +1990,7 @@ jobs:
   # ===========================================================================
   release:
     runs-on: ubuntu-latest
-    needs: [versioning, build-windows-x86_64, build-windows-aarch64, build-windows-msi, build-linux-x86_64, build-linux-aarch64, build-macos-aarch64, build-macos-x86_64, build-macos-dmg]
+    needs: [versioning, build-windows-x86_64, build-windows-aarch64, build-windows-msi, build-linux-x86_64, build-linux-aarch64, build-macos-aarch64, build-macos-dmg]
     # Windows 与 Linux 成功即可发布；macOS runner 容量不足时允许缺省，
     # 避免单个平台的排队超时导致整轮几小时的编译白跑
     if: >-
@@ -2300,7 +2071,6 @@ jobs:
           mv "artifacts/zed-linux-arm64/zedg-${LANG_LOWER}-linux-aarch64-${BUILD_VERSION}.deb" release-dist/ || echo "No Linux ARM64 deb artifact"
           mv "artifacts/zed-linux-arm64/zedg-${LANG_LOWER}-linux-aarch64-${BUILD_VERSION}.rpm" release-dist/ || echo "No Linux ARM64 rpm artifact"
           mv "artifacts/zed-macos/zedg-${LANG_LOWER}-macos-aarch64-${BUILD_VERSION}.dmg" release-dist/ || echo "No macOS aarch64 artifact"
-          mv "artifacts/zed-macos/zedg-${LANG_LOWER}-macos-x86_64-${BUILD_VERSION}.dmg" release-dist/ || echo "No macOS x86_64 artifact"
           mv "artifacts/l10n-patch/l10n.patch" "release-dist/zedg-${LANG_LOWER}-l10n-${BUILD_VERSION}.patch" || echo "No l10n patch"
           mv "artifacts/l10n-patch/l10n-source.tar.gz" "release-dist/zedg-${LANG_LOWER}-source-${BUILD_VERSION}.tar.gz" || echo "No l10n source"
 

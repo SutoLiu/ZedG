@@ -28,16 +28,15 @@
 | Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.deb` | `sudo dpkg -i *.deb` |
 | Linux (ARM64) | `zedg-zh-cn-linux-aarch64-*.rpm` | `sudo dnf install *.rpm` |
 | macOS (Apple Silicon) | `zedg-zh-cn-macos-aarch64-*.dmg` | DMG 拖入 Applications（[说明](#macos-安装)） |
-| macOS (Intel) | `zedg-zh-cn-macos-x86_64-*.dmg` | DMG 拖入 Applications |
 | 源码补丁 | `zedg-zh-cn-source-*.tar.gz` | 供本地编译使用 |
 
-> 当前构建矩阵：Windows（x86_64 / ARM64）、Linux（x86_64 / ARM64）、macOS（Apple Silicon / Intel），共 6 个平台。macOS 不提供 Universal 合并包，请按芯片架构选择。
+> 当前构建矩阵：Windows（x86_64 / ARM64）、Linux（x86_64 / ARM64）、macOS（Apple Silicon），共 5 个平台。macOS 仅提供 Apple Silicon 构建，Intel 机型可使用源码补丁自行编译。
 
 ### macOS 安装
 
 **DMG 手动安装：**
 
-从 Releases 下载对应架构的 DMG（Apple Silicon 选 `aarch64`，Intel 选 `x86_64`），打开后将 ZedG 拖入 Applications。由于构建未经 Apple 签名，首次打开会提示"应用已损坏"，在终端执行以下命令即可：
+从 Releases 下载 `aarch64` 的 DMG，打开后将 ZedG 拖入 Applications。由于构建未经 Apple 签名，首次打开会提示"应用已损坏"，在终端执行以下命令即可：
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
@@ -52,7 +51,7 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 - 术语表约束 + 翻译一致性检查
 - 源码替换三层保护（过滤 + 语法修正 + 受保护区域跳过）
 - JSON <-> Excel 双向转换，支持人工校对
-- 跨平台构建（Windows x86_64 / Linux x86_64 / macOS），含应用图标
+- 跨平台构建（Windows x86_64 / ARM64、Linux x86_64 / ARM64、macOS Apple Silicon），含应用图标
 - GitHub Actions 全自动流水线：扫描 -> 翻译 -> 构建 -> 发布
 
 ## 自动化流水线
@@ -60,7 +59,7 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 ```
 01-translate (每天 12:00)   扫描上游新版本，提取并翻译字符串
        |
-02-build                    6 平台编译 + patch_agent_env 补丁，生成 Release
+02-build                    5 平台编译 + patch_agent_env 补丁，生成 Release
 
 03-retry-translate (手动)   不依赖新版本，单独补翻遗漏条目，不触发构建
 ```
