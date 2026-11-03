@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .replace import _check_placeholders, _is_positional  # noqa: F401
 from .utils import (
-    AIConfig, TranslationDict, extract_placeholders,
+    AIConfig, TranslationDict, check_rust_paths, extract_placeholders,
     load_json, save_json,
 )
 
@@ -21,8 +21,9 @@ _FIX_PROMPT = """\
 
 规则:
 1. 占位符（如 {{name}}, {{}}, {{:?}}, {{0}} 等）必须与原文完全相同，不可翻译
-2. 只修正占位符，尽量保留原有翻译内容
-3. 直接返回修正后的译文，不要添加任何说明
+2. 原文中的 Rust 路径（如 workspace::CloseActiveItem）必须原样保留，不可翻译
+3. 只修正占位符，尽量保留原有翻译内容
+4. 直接返回修正后的译文，不要添加任何说明
 
 原文: {original}
 原文占位符: {src_ph}
@@ -53,7 +54,7 @@ def _ai_fix_one(
             if not fixed:
                 continue
             fixed_ph = extract_placeholders(fixed)
-            if _check_placeholders(src_ph, fixed_ph):
+            if _check_placeholders(src_ph, fixed_ph) and check_rust_paths(original, fixed):
                 log.info(
                     "修复成功 (第%d次): %r → %r", attempt, original, fixed,
                 )
@@ -102,11 +103,11 @@ def fix_translation_json(
                 continue
             src_ph = extract_placeholders(original)
             dst_ph = extract_placeholders(translated)
-            if _check_placeholders(src_ph, dst_ph):
+            if _check_placeholders(src_ph, dst_ph) and check_rust_paths(original, translated):
                 continue
 
             log.info(
-                "占位符不匹配: %r → %r (原文=%s, 译文=%s) [%s]",
+                "占位符或路径不匹配: %r → %r (原文=%s, 译文=%s) [%s]",
                 original, translated, src_ph, dst_ph, file_path,
             )
             fixed = _ai_fix_one(

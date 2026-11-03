@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -209,6 +210,72 @@ def extract_placeholders(s: str) -> list[str]:
     placeholders.extend(m.group() for m in c_pattern.finditer(masked) if m.group() != "%%")
 
     return placeholders
+
+
+# Rust 路径/标识符，如 workspace::CloseActiveItem、editor::rewrap
+_RUST_PATH = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)+\b")
+
+# 花括号占位符（不含嵌套）
+_BRACE_PLACEHOLDER = re.compile(r"\{([^{}]*)\}")
+
+# 匿名占位符编号标记，如 {__PH0__}
+_PLACEHOLDER_MARKER = re.compile(r"\{__PH(\d+)__\}")
+
+
+def extract_rust_paths(s: str) -> list[str]:
+    """提取字符串中的 Rust 路径（形如 workspace::CloseActiveItem）"""
+    return _RUST_PATH.findall(s)
+
+
+def check_rust_paths(original: str, translated: str) -> bool:
+    """校验译文原样保留了原文中的 Rust 路径。
+
+    路径被翻译（如 workspace::CloseActiveItem → 工作区::CloseActiveItem）
+    会破坏 action 名称、匹配逻辑或测试断言。
+    """
+    return all(path in translated for path in extract_rust_paths(original))
+
+
+def number_anonymous_placeholders(s: str) -> tuple[str, list[str]]:
+    """把位置绑定的花括号占位符替换为 {__PH0__} 编号标记。
+
+    Rust format! 的匿名占位符按出现顺序绑定参数，译文一旦调换位置
+    就会把参数显示错。编号化后模型必须保留标记与编号顺序，从而可校验。
+
+    返回 (编号化文本, 原占位符列表)。命名/索引占位符（{name}、{0}）
+    顺序无关，不做编号。
+    """
+    masked = s.replace("{{", "\x00\x00").replace("}}", "\x01\x01")
+    parts: list[str] = []
+    originals: list[str] = []
+    last = 0
+    for match in _BRACE_PLACEHOLDER.finditer(masked):
+        inner = match.group(1)
+        if inner and not inner.startswith(":"):
+            continue
+        idx = len(originals)
+        parts.append(s[last:match.start()])
+        parts.append(f"{{__PH{idx}__}}")
+        originals.append(s[match.start():match.end()])
+        last = match.end()
+    parts.append(s[last:])
+    return "".join(parts), originals
+
+
+def restore_anonymous_placeholders(s: str, originals: list[str]) -> str:
+    """把 {__PHn__} 标记还原为原占位符"""
+    def repl(match: re.Match[str]) -> str:
+        idx = int(match.group(1))
+        return originals[idx] if 0 <= idx < len(originals) else match.group(0)
+
+    return _PLACEHOLDER_MARKER.sub(repl, s)
+
+
+def placeholder_markers_in_order(s: str, count: int) -> bool:
+    """校验译文中的编号标记齐全，且按 0..count-1 顺序出现"""
+    markers = [int(m.group(1)) for m in _PLACEHOLDER_MARKER.finditer(s)]
+    return markers == list(range(count))
+
 
 
 def build_glossary_section(glossary_path: str) -> str:

@@ -25,11 +25,15 @@ from .utils import (
     ProgressBar,
     TranslationDict,
     build_glossary_section,
+    check_rust_paths,
     load_json,
     normalize_fullwidth,
+    number_anonymous_placeholders,
     parse_json_response,
     parse_numbered_response,
     parse_xml_response,
+    placeholder_markers_in_order,
+    restore_anonymous_placeholders,
     save_json,
 )
 
@@ -233,12 +237,45 @@ async def _translate_batch(
     file_content: str,
     system_prompt: str,
 ) -> dict[str, str]:
-    """翻译一批字符串，含占位符校验和自动重试"""
-    result = await _fetch_translation(
-        client, model, file_path, strings, file_content, system_prompt,
+    """翻译一批字符串，含占位符与 Rust 路径校验和自动重试"""
+    # 匿名占位符编号化：翻译阶段携带序号，防止译文调换 {} 位置导致参数错位
+    numbered: dict[str, str] = {}
+    placeholder_map: dict[str, tuple[str, list[str]]] = {}
+    for original in strings:
+        numbered_original, placeholders = number_anonymous_placeholders(original)
+        if numbered_original in placeholder_map:
+            # 编号化后与其他原文冲突（如 "{}" 与 "{:?}"），该条不编号
+            numbered_original, placeholders = original, []
+        numbered[numbered_original] = ""
+        placeholder_map[numbered_original] = (original, placeholders)
+
+    raw_result = await _fetch_translation(
+        client, model, file_path, numbered, file_content, system_prompt,
     )
-    if not result:
-        return result
+    if not raw_result:
+        return {}
+
+    result: dict[str, str] = {}
+    for numbered_original, value in raw_result.items():
+        entry = placeholder_map.get(numbered_original)
+        if entry is None:
+            continue
+        original, placeholders = entry
+        if value and not placeholder_markers_in_order(value, len(placeholders)):
+            log.warning(
+                "占位符顺序错误，丢弃译文: %r → %r [%s]",
+                original, value, file_path,
+            )
+            value = ""
+        elif value:
+            value = restore_anonymous_placeholders(value, placeholders)
+            if not check_rust_paths(original, value):
+                log.warning(
+                    "Rust 路径被改写，丢弃译文: %r → %r [%s]",
+                    original, value, file_path,
+                )
+                value = ""
+        result[original] = value
 
     # 占位符校验 + 重试（最多 2 次）
     for retry in range(2):
@@ -326,6 +363,18 @@ async def _ai_fix_consistency(
     # 将 AI 修正结果应用到所有文件
     for original, new_translation in fixed.items():
         if not new_translation:
+            continue
+        if not check_rust_paths(original, new_translation):
+            log.warning(
+                "一致性修复改写了 Rust 路径，忽略: %r → %r",
+                original, new_translation,
+            )
+            continue
+        if validate_placeholders({original: new_translation}):
+            log.warning(
+                "一致性修复破坏了占位符，忽略: %r → %r",
+                original, new_translation,
+            )
             continue
         applied = 0
         for pairs in result.values():

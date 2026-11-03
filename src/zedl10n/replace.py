@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from .utils import (
-    TranslationDict, extract_placeholders, load_json,
+    TranslationDict, check_rust_paths, extract_placeholders, load_json,
     normalize_fullwidth, save_json,
 )
 
@@ -159,6 +159,13 @@ def _filter_replacements(
             log.warning(
                 "占位符不匹配，跳过: %r → %r (原文=%s, 译文=%s) [%s]",
                 original, new_value, src_ph, dst_ph, file_path,
+            )
+            continue
+        # Rust 路径被翻译（workspace::CloseActiveItem → 工作区::...）会破坏 action 名
+        if not check_rust_paths(original, new_value):
+            log.warning(
+                "Rust 路径被改写，跳过: %r → %r [%s]",
+                original, new_value, file_path,
             )
             continue
         clean[original] = new_value
