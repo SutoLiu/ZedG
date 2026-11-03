@@ -553,13 +553,26 @@ jobs:
             D:\c\git
           key: sccache-windows-x86_64
 
+      - name: 下载 ConPTY（终端运行依赖）
+        shell: pwsh
+        run: |
+          # 与上游 script/bundle-windows.ps1 同源；缺失会导致终端受限
+          $url = "https://github.com/microsoft/terminal/releases/download/v1.25.1912.0/Microsoft.Windows.Console.ConPTY.1.25.260710002-preview.nupkg"
+          Invoke-WebRequest -Uri $url -OutFile conpty.zip -UseBasicParsing
+          Expand-Archive -Path conpty.zip -DestinationPath conpty -Force
+
       - name: 打包 Windows
         shell: pwsh
         run: |
           mkdir zed-dist
           mkdir zed-dist\bin
+          mkdir zed-dist\x64
+          mkdir zed-dist\arm64
           Copy-Item "D:\z\target\release\zed.exe" zed-dist\ZedG.exe
           Copy-Item "D:\z\target\release\cli.exe" zed-dist\bin\ZedG.exe
+          Copy-Item "conpty\runtimes\win-x64\native\conpty.dll" zed-dist\conpty.dll
+          Copy-Item "conpty\build\native\runtimes\x64\OpenConsole.exe" zed-dist\x64\OpenConsole.exe
+          Copy-Item "conpty\build\native\runtimes\arm64\OpenConsole.exe" zed-dist\arm64\OpenConsole.exe
           Compress-Archive -Path zed-dist\* -DestinationPath "zedg-$env:LANG_LOWER-windows-x86_64-$env:BUILD_VERSION.zip"
 
       - name: 上传产物
@@ -885,13 +898,26 @@ jobs:
             C:\cc\git
           key: sccache-windows-aarch64
 
+      - name: 下载 ConPTY（终端运行依赖）
+        shell: pwsh
+        run: |
+          # 与上游 script/bundle-windows.ps1 同源；缺失会导致终端受限
+          $url = "https://github.com/microsoft/terminal/releases/download/v1.25.1912.0/Microsoft.Windows.Console.ConPTY.1.25.260710002-preview.nupkg"
+          Invoke-WebRequest -Uri $url -OutFile conpty.zip -UseBasicParsing
+          Expand-Archive -Path conpty.zip -DestinationPath conpty -Force
+
       - name: 打包 Windows ARM64
         shell: pwsh
         run: |
           mkdir zed-dist
           mkdir zed-dist\bin
+          mkdir zed-dist\x64
+          mkdir zed-dist\arm64
           Copy-Item "C:\z\target\aarch64-pc-windows-msvc\release\zed.exe" zed-dist\ZedG.exe
           Copy-Item "C:\z\target\aarch64-pc-windows-msvc\release\cli.exe" zed-dist\bin\ZedG.exe
+          Copy-Item "conpty\runtimes\win-arm64\native\conpty.dll" zed-dist\conpty.dll
+          Copy-Item "conpty\build\native\runtimes\x64\OpenConsole.exe" zed-dist\x64\OpenConsole.exe
+          Copy-Item "conpty\build\native\runtimes\arm64\OpenConsole.exe" zed-dist\arm64\OpenConsole.exe
           Compress-Archive -Path zed-dist\* -DestinationPath "zedg-$env:LANG_LOWER-windows-aarch64-$env:BUILD_VERSION.zip"
 
       - name: 上传产物
@@ -933,10 +959,16 @@ jobs:
             Expand-Archive $ZipPath -DestinationPath "extracted\$Arch" -Force
             $exePath = Resolve-Path "extracted\$Arch\$ExeSubPath"
             $cliPath = Resolve-Path "extracted\$Arch\$CliSubPath"
+            $conptyPath = Resolve-Path "extracted\$Arch\conpty.dll"
+            $openConsoleX64Path = Resolve-Path "extracted\$Arch\x64\OpenConsole.exe"
+            $openConsoleArm64Path = Resolve-Path "extracted\$Arch\arm64\OpenConsole.exe"
             candle -arch $Arch `
               "-dAppVersion=$msiVer" `
               "-dSourceExe=$exePath" `
               "-dSourceCli=$cliPath" `
+              "-dSourceConpty=$conptyPath" `
+              "-dSourceOpenConsoleX64=$openConsoleX64Path" `
+              "-dSourceOpenConsoleArm64=$openConsoleArm64Path" `
               "-dUpgradeCode=$UpgradeCode" `
               .github\installer\zedg.wxs `
               -o "$Arch.wixobj"

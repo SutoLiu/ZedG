@@ -15,6 +15,8 @@
       <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="ZedG">
           <Directory Id="BinFolder" Name="bin" />
+          <Directory Id="X64Folder" Name="x64" />
+          <Directory Id="Arm64Folder" Name="arm64" />
         </Directory>
       </Directory>
       <Directory Id="ProgramMenuFolder">
@@ -41,6 +43,18 @@
       </Component>
     </ComponentGroup>
 
+    <ComponentGroup Id="ConptyComponents">
+      <Component Id="ConptyDll" Directory="INSTALLFOLDER">
+        <File Id="ConptyDllFile" Source="$(var.SourceConpty)" KeyPath="yes" />
+      </Component>
+      <Component Id="OpenConsoleX64" Directory="X64Folder">
+        <File Id="OpenConsoleX64File" Source="$(var.SourceOpenConsoleX64)" KeyPath="yes" />
+      </Component>
+      <Component Id="OpenConsoleArm64" Directory="Arm64Folder">
+        <File Id="OpenConsoleArm64File" Source="$(var.SourceOpenConsoleArm64)" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
     <ComponentGroup Id="DesktopShortcutComponents" Directory="DesktopFolder">
       <Component Id="DesktopShortcut">
         <Shortcut Id="DesktopShortcut"
@@ -55,6 +69,7 @@
     <Feature Id="Main" Title="ZedG" Level="1">
       <ComponentGroupRef Id="MainComponents" />
       <ComponentGroupRef Id="CliComponents" />
+      <ComponentGroupRef Id="ConptyComponents" />
       <ComponentGroupRef Id="DesktopShortcutComponents" />
     </Feature>
 
