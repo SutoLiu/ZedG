@@ -29,9 +29,11 @@ on:
         type: boolean
         default: false
 
-  # 每天北京时间 13:00 自动补翻，与 01 的 12:00 错开
+  # 每天北京时间 13:00 自动补翻，与 01 的 12:00 错开；
+  # 19:00 为备用时间，缓解 GitHub 定时调度延迟/跳过（当日已跑过则跳过）
   schedule:
     - cron: "0 5 * * *"
+    - cron: "0 11 * * *"
 
 permissions:
   contents: write
@@ -44,7 +46,34 @@ env:
   ZED_REPO: https://github.com/zed-industries/zed.git
 
 jobs:
+  # 备用时间守卫：schedule 触发时，若今天已有定时补翻运行则跳过
+  guard:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          COUNT=$(gh run list --repo "${{ github.repository }}" \
+            --workflow "03-retry-translate.yml" --event schedule \
+            --limit 20 --json databaseId,createdAt \
+            --jq "[.[] | select(.createdAt | startswith(\"$TODAY\")) | select(.databaseId != ${{ github.run_id }})] | length")
+          if [ "$COUNT" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "今日已有 $COUNT 次定时补翻，备用时间跳过"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   retry:
+    needs: [guard]
+    if: >-
+      always() &&
+      (github.event_name != 'schedule' || needs.guard.outputs.skip != 'true')
     runs-on: ubuntu-latest
     env:
       HAS_AI_KEY: ${{ secrets.AI_API_KEY != '' }}
