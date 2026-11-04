@@ -1,0 +1,222 @@
+name: 98 macOS 补发（临时）
+
+# 用途：主构建的 macOS job 超时/被取消时，独立重建 macOS aarch64、
+# 打包 DMG、补传现有 Release，并更新 Homebrew cask。
+# 复用主构建 run 的 l10n-patch artifact（未指定 run_id 时自动查找）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "目标 Release tag（如 v1.26.2）"
+        required: true
+        type: string
+      lang:
+        description: "语言"
+        default: zh-CN
+        type: string
+      source_run_id:
+        description: "来源构建 run ID（留空自动查找含 l10n-patch 的 run）"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  ZED_REPO: https://github.com/zed-industries/zed.git
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    env:
+      V: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      BUILD_VERSION: ${{ inputs.version }}
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 解析参数
+        run: |
+          LANG_LOWER=$(echo "${{ inputs.lang }}" | tr '[:upper:]' '[:lower:]')
+          CLEAN_VERSION="${V#v}"
+          echo "LANG_LOWER=$LANG_LOWER" >> "$GITHUB_ENV"
+          echo "CLEAN_VERSION=$CLEAN_VERSION" >> "$GITHUB_ENV"
+          echo "目标版本: $V / 语言: $LANG_LOWER"
+
+      - name: 查找 l10n-patch artifact
+        id: find
+        run: |
+          RUN_ID="${{ inputs.source_run_id }}"
+          if [ -z "$RUN_ID" ]; then
+            for id in $(gh run list --repo "${{ github.repository }}" \
+                         --workflow 02-build.yml --limit 15 \
+                         --json databaseId --jq '.[].databaseId'); do
+              AID=$(gh api "repos/${{ github.repository }}/actions/runs/$id/artifacts" \
+                    --jq '.artifacts[] | select(.name == "l10n-patch") | .id' 2>/dev/null | head -1)
+              if [ -n "$AID" ]; then RUN_ID=$id; break; fi
+            done
+          fi
+          [ -n "$RUN_ID" ] || { echo "::error::未找到含 l10n-patch 的构建 run"; exit 1; }
+          echo "使用构建 run: $RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: 下载本地化补丁
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.find.outputs.run_id }}
+          github-token: ${{ github.token }}
+          name: l10n-patch
+
+      - name: 克隆源码并应用补丁
+        run: |
+          # l10n.patch 已包含 rebrand 与 patch_agent_env 的改动（prepare 阶段生成），
+          # 此处只需 clone + apply，不能再重复执行 rebrand。
+          git clone --depth 1 --branch "$BUILD_VERSION" "$ZED_REPO" zed
+          cd zed && git apply ../l10n.patch
+
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: 构建 aarch64
+        env:
+          RELEASE_CHANNEL: stable
+        run: |
+          python3 "$GITHUB_WORKSPACE/script/ci-build.py" \
+            --source-dir "$GITHUB_WORKSPACE/zed" \
+            --target aarch64-apple-darwin --jobs 3
+          cargo build --release --package cli --target aarch64-apple-darwin \
+            --manifest-path "$GITHUB_WORKSPACE/zed/Cargo.toml"
+
+      - name: 打包 DMG
+        run: |
+          BIN="$GITHUB_WORKSPACE/zed/target/aarch64-apple-darwin/release/zed"
+          CLI="$GITHUB_WORKSPACE/zed/target/aarch64-apple-darwin/release/cli"
+          DMG="zedg-${LANG_LOWER}-macos-aarch64-${V}.dmg"
+          echo "DMG=$DMG" >> "$GITHUB_ENV"
+          chmod +x "$BIN" "$CLI"
+          strip -x "$BIN" "$CLI"
+
+          ICONSET_DIR="AppIcon.iconset"
+          mkdir -p "$ICONSET_DIR"
+          ICON_SRC="zed/crates/zed/resources/app-icon@2x.png"
+          if [ -f "$ICON_SRC" ]; then
+            sips -z 16 16     "$ICON_SRC" --out "$ICONSET_DIR/icon_16x16.png"
+            sips -z 32 32     "$ICON_SRC" --out "$ICONSET_DIR/icon_16x16@2x.png"
+            sips -z 32 32     "$ICON_SRC" --out "$ICONSET_DIR/icon_32x32.png"
+            sips -z 64 64     "$ICON_SRC" --out "$ICONSET_DIR/icon_32x32@2x.png"
+            sips -z 128 128   "$ICON_SRC" --out "$ICONSET_DIR/icon_128x128.png"
+            sips -z 256 256   "$ICON_SRC" --out "$ICONSET_DIR/icon_128x128@2x.png"
+            sips -z 256 256   "$ICON_SRC" --out "$ICONSET_DIR/icon_256x256.png"
+            sips -z 512 512   "$ICON_SRC" --out "$ICONSET_DIR/icon_256x256@2x.png"
+            sips -z 512 512   "$ICON_SRC" --out "$ICONSET_DIR/icon_512x512.png"
+            cp "$ICON_SRC"         "$ICONSET_DIR/icon_512x512@2x.png"
+            iconutil -c icns "$ICONSET_DIR" -o AppIcon.icns
+          fi
+
+          APP="ZedG-tmp.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp "$BIN" "$APP/Contents/MacOS/zed"
+          cp "$CLI" "$APP/Contents/MacOS/cli"
+          chmod +x "$APP/Contents/MacOS/zed" "$APP/Contents/MacOS/cli"
+          [ -f AppIcon.icns ] && cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+          [ -f "zed/crates/zed/resources/Document.icns" ] && \
+            cp "zed/crates/zed/resources/Document.icns" "$APP/Contents/Resources/"
+          cat > "$APP/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key><string>zed</string>
+              <key>CFBundleIdentifier</key><string>dev.zed.ZedG</string>
+              <key>CFBundleName</key><string>ZedG</string>
+              <key>CFBundleIconFile</key><string>AppIcon</string>
+              <key>CFBundlePackageType</key><string>APPL</string>
+              <key>CFBundleShortVersionString</key><string>${CLEAN_VERSION}</string>
+          </dict>
+          </plist>
+          PLIST
+
+          STAGING="dmg-staging-$$"
+          mkdir -p "$STAGING"
+          mv "$APP" "$STAGING/ZedG.app"
+          ln -s /Applications "$STAGING/Applications"
+          sleep 3
+          n=0
+          until [ "$n" -ge 10 ]; do
+            hdiutil create -volname ZedG -srcfolder "$STAGING" -ov -format UDZO "$DMG" && break
+            n=$((n+1))
+            echo "hdiutil 失败, 等待 15 秒后重试 ($n/10)..."
+            sleep 15
+          done
+          rm -rf "$STAGING"
+          [ -f "$DMG" ] || { echo "::error::打包 $DMG 失败"; exit 1; }
+          echo "✓ $DMG ($(du -sh "$DMG" | cut -f1))"
+
+      - name: 补传到 Release 并更新校验和
+        run: |
+          gh release upload "$V" "$DMG" --clobber --repo "${{ github.repository }}"
+
+          rm -rf sums && mkdir sums
+          if gh release download "$V" --repo "${{ github.repository }}" \
+               --pattern sha256sums.txt --dir sums --clobber; then
+            grep -v 'macos-aarch64' sums/sha256sums.txt > sums/new.txt || true
+            shasum -a 256 "$DMG" >> sums/new.txt
+            mv sums/new.txt sums/sha256sums.txt
+            gh release upload "$V" sums/sha256sums.txt --clobber --repo "${{ github.repository }}"
+          fi
+          echo "--- 当前资产 ---"
+          gh release view "$V" --repo "${{ github.repository }}" --json assets --jq '.assets[].name'
+
+      - name: 更新 Homebrew cask
+        env:
+          TAP_PAT: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          [ -n "$TAP_PAT" ] || { echo "::error::未配置 TAP_GITHUB_TOKEN"; exit 1; }
+          HASH_ARM=$(shasum -a 256 "$DMG" | awk '{print $1}')
+          mkdir -p Casks
+          cat > Casks/zedg.rb <<CASK
+          cask "zedg" do
+            version "$CLEAN_VERSION"
+            sha256 "$HASH_ARM"
+
+            url "https://github.com/${{ github.repository }}/releases/download/v#{version}/zedg-zh-cn-macos-aarch64-v#{version}.dmg"
+            name "ZedG"
+            desc "Zed Editor (Localized / 汉化版)"
+            homepage "https://github.com/${{ github.repository }}"
+
+            depends_on arch: :arm64
+            depends_on macos: ">= :ventura"
+
+            app "ZedG.app"
+
+            postflight do
+              system_command "/usr/bin/xattr",
+                             args: ["-rd", "com.apple.quarantine", "#{appdir}/ZedG.app"]
+            end
+
+            zap trash: [
+              "~/Library/Application Support/Zed",
+              "~/Library/Caches/dev.zed.ZedG",
+              "~/Library/Preferences/dev.zed.ZedG.plist",
+            ]
+          end
+          CASK
+
+          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/wenyinos/homebrew-zedg.git" /tmp/tap
+          mkdir -p /tmp/tap/Casks
+          cp Casks/zedg.rb /tmp/tap/Casks/zedg.rb
+          cd /tmp/tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/zedg.rb
+          if git diff --cached --quiet; then
+            echo "Cask 无变化"
+          else
+            git commit -m "chore: 更新 zedg 到 $V（macOS 补发）"
+            git push origin main
+          fi
