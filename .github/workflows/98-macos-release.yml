@@ -72,11 +72,10 @@ jobs:
 
       - name: 克隆源码并应用补丁
         run: |
+          # l10n.patch 已包含 rebrand 与 patch_agent_env 的改动（prepare 阶段生成），
+          # 此处只需 clone + apply，不能再重复执行 rebrand。
           git clone --depth 1 --branch "$BUILD_VERSION" "$ZED_REPO" zed
-          python3 scripts/rebrand.py --zed-dir zed
           cd zed && git apply ../l10n.patch
-          cd ..
-          python3 patch_agent_env.py --source-root zed
 
       - name: 安装 Rust
         uses: dtolnay/rust-toolchain@stable
