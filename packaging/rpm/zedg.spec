@@ -3,7 +3,7 @@ Version:        %{_zedg_version}
 Release:        1%{?dist}
 Summary:        Zed editor with globalization support
 License:        AGPL-3.0-or-later AND Apache-2.0 AND GPL-3.0-or-later
-URL:            https://github.com/a15355447898a/zed-globalization
+URL:            https://github.com/wenyinos/ZedG
 
 AutoReqProv:    no
 
@@ -13,11 +13,13 @@ A high-performance, multiplayer code editor with globalization support.
 %install
 mkdir -p %{buildroot}/usr/bin
 mkdir -p %{buildroot}/usr/libexec
+mkdir -p %{buildroot}/usr/lib/zedg
 mkdir -p %{buildroot}/usr/share/applications
 mkdir -p %{buildroot}/usr/share/icons/hicolor/512x512/apps
 mkdir -p %{buildroot}/usr/share/icons/hicolor/1024x1024/apps
 cp %{_zedg_dist}/usr/bin/zedg                                      %{buildroot}/usr/bin/
 cp %{_zedg_dist}/usr/libexec/zedg                                  %{buildroot}/usr/libexec/
+cp -a %{_zedg_dist}/usr/lib/zedg/.                                 %{buildroot}/usr/lib/zedg/
 cp %{_zedg_dist}/usr/share/applications/zedg.desktop               %{buildroot}/usr/share/applications/
 cp %{_zedg_dist}/usr/share/icons/hicolor/512x512/apps/zedg.png     %{buildroot}/usr/share/icons/hicolor/512x512/apps/
 cp %{_zedg_dist}/usr/share/icons/hicolor/1024x1024/apps/zedg.png   %{buildroot}/usr/share/icons/hicolor/1024x1024/apps/
