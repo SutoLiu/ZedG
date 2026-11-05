@@ -54,18 +54,8 @@ def _version_key(version: str) -> tuple[int, ...]:
     return tuple(int(x) for x in re.findall(r"\d+", version))
 
 
-def render(rows: list[dict]) -> str:
-    """生成折叠表格 + 字符进度条，只保留最近 3 个版本。"""
-    if not rows:
-        return "> 暂无翻译数据。"
-
-    versions = sorted(
-        {r["version"] for r in rows}, key=_version_key, reverse=True,
-    )[:3]
-    rows = [r for r in rows if r["version"] in versions]
-    rows.sort(key=lambda r: r["lang"])
-    rows.sort(key=lambda r: _version_key(r["version"]), reverse=True)
-
+def _render_table(rows: list[dict]) -> list[str]:
+    """渲染覆盖率表格行。"""
     lines = [
         "| 语言 | 版本 | 已译 | 总条目 | 覆盖率 |",
         "|------|------|------|--------|--------|",
@@ -75,21 +65,44 @@ def render(rows: list[dict]) -> str:
             f"| {r['lang']} | {r['version']} | {r['filled']:,} "
             f"| {r['total']:,} | {r['pct']:.1f}% |"
         )
+    return lines
 
-    lines.append("")
-    lines.append("```")
-    width = max(len(r["lang"]) for r in rows)
+
+def _render_bars(rows: list[dict], width: int) -> list[str]:
+    """渲染字符进度条（width 为语言列统一宽度）。"""
+    lines = ["```"]
     for r in rows:
         blocks = round(r["pct"] / 100 * BAR_WIDTH)
         bar = "█" * blocks + "░" * (BAR_WIDTH - blocks)
         lines.append(f"{r['lang']:<{width}}  {bar}  {r['pct']:.1f}%")
     lines.append("```")
+    return lines
 
-    body = "\n".join(lines)
+
+def render(rows: list[dict]) -> str:
+    """全部版本保留；默认显示最近 3 行，其余折叠。"""
+    if not rows:
+        return "> 暂无翻译数据。"
+
+    rows = list(rows)
+    rows.sort(key=lambda r: r["lang"])
+    rows.sort(key=lambda r: _version_key(r["version"]), reverse=True)
+
+    width = max(len(r["lang"]) for r in rows)
+    visible, rest = rows[:3], rows[3:]
+
+    body = "\n".join(_render_table(visible) + [""] + _render_bars(visible, width))
+    if not rest:
+        return body
+
+    rest_body = "\n".join(
+        _render_table(rest) + [""] + _render_bars(rest, width)
+    )
     return (
-        "<details>\n"
-        f"<summary>最近 {len(versions)} 个版本的翻译覆盖率</summary>\n\n"
         f"{body}\n\n"
+        "<details>\n"
+        f"<summary>展开查看其余 {len(rest)} 行（共 {len(rows)} 行）</summary>\n\n"
+        f"{rest_body}\n\n"
         "</details>"
     )
 
