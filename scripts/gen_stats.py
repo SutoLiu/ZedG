@@ -49,10 +49,22 @@ def scan(root: str = I18N_ROOT) -> list[dict]:
     return rows
 
 
+def _version_key(version: str) -> tuple[int, ...]:
+    """把 v1.26.2 之类的版本号转成可比较的数字元组。"""
+    return tuple(int(x) for x in re.findall(r"\d+", version))
+
+
 def render(rows: list[dict]) -> str:
-    """生成表格 + 字符进度条。"""
+    """生成折叠表格 + 字符进度条，只保留最近 3 个版本。"""
     if not rows:
         return "> 暂无翻译数据。"
+
+    versions = sorted(
+        {r["version"] for r in rows}, key=_version_key, reverse=True,
+    )[:3]
+    rows = [r for r in rows if r["version"] in versions]
+    rows.sort(key=lambda r: r["lang"])
+    rows.sort(key=lambda r: _version_key(r["version"]), reverse=True)
 
     lines = [
         "| 语言 | 版本 | 已译 | 总条目 | 覆盖率 |",
@@ -72,7 +84,14 @@ def render(rows: list[dict]) -> str:
         bar = "█" * blocks + "░" * (BAR_WIDTH - blocks)
         lines.append(f"{r['lang']:<{width}}  {bar}  {r['pct']:.1f}%")
     lines.append("```")
-    return "\n".join(lines)
+
+    body = "\n".join(lines)
+    return (
+        "<details>\n"
+        f"<summary>最近 {len(versions)} 个版本的翻译覆盖率</summary>\n\n"
+        f"{body}\n\n"
+        "</details>"
+    )
 
 
 def main() -> int:
