@@ -52,6 +52,19 @@ scoop bucket add zedg https://github.com/wenyinos/scoop-zedg
 scoop install zedg
 ```
 
+**AUR / COPR (Linux):**
+
+Arch Linux and Fedora/RHEL users can install from the dedicated packaging repo ([WenYin-Community/zed-globalization](https://github.com/WenYin-Community/zed-globalization)), which syncs upstream releases daily and pushes AUR/COPR packages:
+
+```bash
+# Arch Linux (AUR)
+yay -S zedg          # or paru -S zedg
+
+# Fedora / RHEL (COPR)
+sudo dnf copr enable ruojiner/zedg
+sudo dnf install zedg
+```
+
 ## Features
 
 - AI-powered scanning to identify translatable Rust source files

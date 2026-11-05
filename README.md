@@ -61,6 +61,25 @@ scoop install zedg
 
 更新：`scoop update zedg`。Manifest 随 Release 自动更新。
 
+### Linux（AUR / COPR）
+
+Arch Linux 与 Fedora/RHEL 用户可通过独立打包仓库安装（[WenYin-Community/zed-globalization](https://github.com/WenYin-Community/zed-globalization) 每日自动同步上游版本，并推送 AUR 与 COPR）：
+
+**AUR（Arch Linux，x86_64 / aarch64）：**
+
+```bash
+yay -S zedg      # 或 paru -S zedg
+```
+
+**COPR（Fedora / RHEL，x86_64 / aarch64）：**
+
+```bash
+sudo dnf copr enable ruojiner/zedg
+sudo dnf install zedg
+```
+
+> 该仓库仅用于 AUR/COPR 打包推送，其 Release 页面只放打包所需的 `tar.gz` 源文件；其他平台安装包以本仓库 Releases 为准。
+
 ### macOS（Homebrew）
 
 ```bash
