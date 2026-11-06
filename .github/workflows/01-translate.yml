@@ -2,8 +2,10 @@ name: 01 提取与翻译
 
 on:
   schedule:
-    # 每天北京时间 12:00
-    - cron: "0 4 * * *"
+    # GitHub schedule 实测稳定延迟约 7.5~8 小时（cron 为 UTC）。
+    # 提前 8 小时触发：UTC 20:00 = 北京次日 04:00，延迟后实际约在北京
+    # 次日 12:00 执行（中午、服务器负载较低）。
+    - cron: "0 20 * * *"
   workflow_dispatch:
     inputs:
       version:
