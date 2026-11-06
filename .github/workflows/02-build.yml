@@ -1412,6 +1412,8 @@ jobs:
     needs: [versioning, prepare]
     if: ${{ needs.versioning.outputs.should_release == 'true' }}
     runs-on: macos-latest
+    # 6h GitHub 默认上限内完成不了就及时失败，交给 98 补发工作流
+    timeout-minutes: 300
     env:
       SCCACHE_DIR: /Users/runner/Library/Caches/Mozilla.sccache
       SCCACHE_IDLE_TIMEOUT: "0"
@@ -1419,9 +1421,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装 sccache
-        continue-on-error: true
-        uses: mozilla-actions/sccache-action@v0.0.3
+      # 注意：macOS 不启用 sccache。实测主构建启用 sccache（含 artifact
+      # 缓存恢复）时，"构建 aarch64" 连续三次跑满 4~6 小时仍未完成；
+      # 而 98 补发工作流（无 sccache）同样源码 2h13m 成功。
+      # 这里不再安装 sccache，后续所有 sccache 步骤因 SCCACHE_AVAILABLE=false 跳过。
 
       - name: 检查 sccache 可用性
         run: |
