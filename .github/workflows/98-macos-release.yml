@@ -1,7 +1,7 @@
 name: 98 macOS 补发（临时）
 
 # 用途：主构建的 macOS job 超时/被取消时，独立重建 macOS aarch64、
-# 打包 DMG、补传现有 Release，并更新 Homebrew cask。
+# 打包 DMG 并补传现有 Release；Homebrew cask 由 homebrew-zedg 仓库的定时 workflow 自动更新。
 # 复用主构建 run 的 l10n-patch artifact（未指定 run_id 时自动查找）。
 
 on:
@@ -171,52 +171,3 @@ jobs:
           fi
           echo "--- 当前资产 ---"
           gh release view "$V" --repo "${{ github.repository }}" --json assets --jq '.assets[].name'
-
-      - name: 更新 Homebrew cask
-        env:
-          TAP_PAT: ${{ secrets.TAP_GITHUB_TOKEN }}
-        run: |
-          [ -n "$TAP_PAT" ] || { echo "::error::未配置 TAP_GITHUB_TOKEN"; exit 1; }
-          HASH_ARM=$(shasum -a 256 "$DMG" | awk '{print $1}')
-          mkdir -p Casks
-          cat > Casks/zedg.rb <<CASK
-          cask "zedg" do
-            version "$CLEAN_VERSION"
-            sha256 "$HASH_ARM"
-
-            url "https://github.com/${{ github.repository }}/releases/download/v#{version}/zedg-zh-cn-macos-aarch64-v#{version}.dmg"
-            name "ZedG"
-            desc "Zed Editor (Localized / 汉化版)"
-            homepage "https://github.com/${{ github.repository }}"
-
-            depends_on arch: :arm64
-            depends_on macos: ">= :ventura"
-
-            app "ZedG.app"
-
-            postflight do
-              system_command "/usr/bin/xattr",
-                             args: ["-rd", "com.apple.quarantine", "#{appdir}/ZedG.app"]
-            end
-
-            zap trash: [
-              "~/Library/Application Support/Zed",
-              "~/Library/Caches/dev.zed.ZedG",
-              "~/Library/Preferences/dev.zed.ZedG.plist",
-            ]
-          end
-          CASK
-
-          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/WenYin-Community/homebrew-zedg.git" /tmp/tap
-          mkdir -p /tmp/tap/Casks
-          cp Casks/zedg.rb /tmp/tap/Casks/zedg.rb
-          cd /tmp/tap
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/zedg.rb
-          if git diff --cached --quiet; then
-            echo "Cask 无变化"
-          else
-            git commit -m "chore: 更新 zedg 到 $V（macOS 补发）"
-            git push origin main
-          fi
