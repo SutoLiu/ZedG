@@ -12,6 +12,12 @@
 
 > **Zed 汉化版** | Zed 简体中文版 | Zed 中文版 | Zed Chinese | Zed Simplified Chinese | Zed Localized | Zed i18n | Zed l10n
 
+## 招募共同维护者
+
+ZedG 长期招募共同维护者。项目位于 [WenYin-Community](https://github.com/WenYin-Community) 组织，**加入组织即开放仓库推送权限**，可参与翻译审校、构建流水线与发布维护。
+
+感兴趣请通过 [issue](https://github.com/WenYin-Community/ZedG/issues) 或邮箱 [admin@wenyinos.com](mailto:admin@wenyinos.com) 联系，简单介绍你的经验与可投入方向即可。提交前请先跑测试，流水线改动建议先在分支验证。
+
 ## 翻译进度
 
 <!-- STATS:START -->
@@ -331,12 +337,6 @@ zed-globalization/
 2. **受保护区域**：跳过字节字符串（`b""`/`br#""#`）和属性宏（`#[action(...)]`）内的替换
 3. **引号转义**：译文中的双引号自动转义为 `\"`
 4. **语法修正**：替换后自动将字符串间的中文标点（`、`/`，`/`；`）还原为 ASCII 标点
-
-## 招募共同维护者
-
-ZedG 长期招募共同维护者。项目位于 [WenYin-Community](https://github.com/WenYin-Community) 组织，**加入组织即开放仓库推送权限**，可参与翻译审校、构建流水线与发布维护。
-
-感兴趣请通过 [issue](https://github.com/WenYin-Community/ZedG/issues) 或邮箱 [admin@wenyinos.com](mailto:admin@wenyinos.com) 联系，简单介绍你的经验与可投入方向即可。提交前请先跑测试，流水线改动建议先在分支验证。
 
 ## 鸣谢
 
