@@ -131,8 +131,7 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
        |
 02-build                    5 平台编译 + patch_agent_env 补丁，生成 Release
        |
-       ├── 05-update-scoop       Release 后自动更新 Scoop manifest
-       └── 06-update-homebrew    Release 后自动更新 Homebrew cask
+       └── 发布源仓库（scoop-zedg / homebrew-zedg）每日自动同步最新 Release
 
 03-retry-translate (每天 13:00)  不依赖新版本，单独补翻遗漏条目，不触发构建
 04-stats                         统计翻译覆盖率
