@@ -10,7 +10,7 @@ An AI-driven localization toolchain for the [Zed Editor](https://github.com/zed-
 
 ## Download
 
-Get the pre-built binaries from [Releases](https://github.com/wenyinos/ZedG/releases/latest):
+Get the pre-built binaries from [Releases](https://github.com/WenYin-Community/ZedG/releases/latest):
 
 | Platform | File | Installation |
 |----------|------|-------------|
@@ -41,14 +41,14 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 **Homebrew (Apple Silicon):**
 
 ```bash
-brew tap wenyinos/zedg
+brew tap WenYin-Community/zedg
 brew install --cask zedg
 ```
 
 **Scoop (Windows):**
 
 ```powershell
-scoop bucket add zedg https://github.com/wenyinos/scoop-zedg
+scoop bucket add zedg https://github.com/WenYin-Community/scoop-zedg
 scoop install zedg
 ```
 
@@ -179,9 +179,9 @@ Multiple layers ensure Rust compilation safety during source replacement:
 
 [MIT](../LICENSE)
 
-[stars-url]: https://github.com/wenyinos/ZedG/stargazers
-[stars-image]: https://img.shields.io/github/stars/wenyinos/ZedG?style=flat-square&logo=github
-[download-url]: https://github.com/wenyinos/ZedG/releases/latest
-[download-image]: https://img.shields.io/github/downloads/wenyinos/ZedG/total?style=flat-square&logo=github
-[license-url]: https://github.com/wenyinos/ZedG/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/wenyinos/ZedG?style=flat-square
+[stars-url]: https://github.com/WenYin-Community/ZedG/stargazers
+[stars-image]: https://img.shields.io/github/stars/WenYin-Community/ZedG?style=flat-square&logo=github
+[download-url]: https://github.com/WenYin-Community/ZedG/releases/latest
+[download-image]: https://img.shields.io/github/downloads/WenYin-Community/ZedG/total?style=flat-square&logo=github
+[license-url]: https://github.com/WenYin-Community/ZedG/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/WenYin-Community/ZedG?style=flat-square

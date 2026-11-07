@@ -207,7 +207,7 @@ jobs:
           end
           CASK
 
-          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/wenyinos/homebrew-zedg.git" /tmp/tap
+          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/WenYin-Community/homebrew-zedg.git" /tmp/tap
           mkdir -p /tmp/tap/Casks
           cp Casks/zedg.rb /tmp/tap/Casks/zedg.rb
           cd /tmp/tap

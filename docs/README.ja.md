@@ -10,7 +10,7 @@
 
 ## ダウンロード
 
-[Releases](https://github.com/wenyinos/ZedG/releases/latest) からビルド済みバイナリをダウンロード：
+[Releases](https://github.com/WenYin-Community/ZedG/releases/latest) からビルド済みバイナリをダウンロード：
 
 | プラットフォーム | ファイル | インストール方法 |
 |-----------------|---------|----------------|
@@ -152,9 +152,9 @@ zed-globalization/
 
 [MIT](../LICENSE)
 
-[stars-url]: https://github.com/wenyinos/ZedG/stargazers
-[stars-image]: https://img.shields.io/github/stars/wenyinos/ZedG?style=flat-square&logo=github
-[download-url]: https://github.com/wenyinos/ZedG/releases/latest
-[download-image]: https://img.shields.io/github/downloads/wenyinos/ZedG/total?style=flat-square&logo=github
-[license-url]: https://github.com/wenyinos/ZedG/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/wenyinos/ZedG?style=flat-square
+[stars-url]: https://github.com/WenYin-Community/ZedG/stargazers
+[stars-image]: https://img.shields.io/github/stars/WenYin-Community/ZedG?style=flat-square&logo=github
+[download-url]: https://github.com/WenYin-Community/ZedG/releases/latest
+[download-image]: https://img.shields.io/github/downloads/WenYin-Community/ZedG/total?style=flat-square&logo=github
+[license-url]: https://github.com/WenYin-Community/ZedG/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/WenYin-Community/ZedG?style=flat-square

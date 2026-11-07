@@ -8,7 +8,7 @@
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wenyinos/ZedG&type=Date)](https://star-history.com/#wenyinos/ZedG&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=WenYin-Community/ZedG&type=Date)](https://star-history.com/#WenYin-Community/ZedG&Date)
 
 > **Zed 汉化版** | Zed 简体中文版 | Zed 中文版 | Zed Chinese | Zed Simplified Chinese | Zed Localized | Zed i18n | Zed l10n
 
@@ -30,7 +30,7 @@ zh-CN  ██████████░░░░░░░░░░░░░░�
 
 ## 下载安装
 
-从 [Releases](https://github.com/wenyinos/ZedG/releases/latest) 下载对应平台的预编译包：
+从 [Releases](https://github.com/WenYin-Community/ZedG/releases/latest) 下载对应平台的预编译包：
 
 | 平台 | 文件 | 安装方式 |
 |------|------|---------|
@@ -55,7 +55,7 @@ zh-CN  ██████████░░░░░░░░░░░░░░�
 ### Windows（Scoop）
 
 ```powershell
-scoop bucket add zedg https://github.com/wenyinos/scoop-zedg
+scoop bucket add zedg https://github.com/WenYin-Community/scoop-zedg
 scoop install zedg
 ```
 
@@ -83,7 +83,7 @@ sudo dnf install zedg
 ### macOS（Homebrew）
 
 ```bash
-brew tap wenyinos/zedg
+brew tap WenYin-Community/zedg
 brew install --cask zedg
 ```
 
@@ -157,14 +157,14 @@ sudo xattr -rd com.apple.quarantine /Applications/ZedG.app
 
 ```bash
 # 最新 pre-release
-gh workflow run 01-translate.yml --repo wenyinos/ZedG \
+gh workflow run 01-translate.yml --repo WenYin-Community/ZedG \
   -f release_type=pre-release -f chain=true
 
 # 指定任意版本
-gh workflow run 02-build.yml --repo wenyinos/ZedG -f version=v1.27.0-pre.1
+gh workflow run 02-build.yml --repo WenYin-Community/ZedG -f version=v1.27.0-pre.1
 
 # 重建已发布版本（tag 自动变为 v1.26.2.1）
-gh workflow run 02-build.yml --repo wenyinos/ZedG -f version=v1.26.2
+gh workflow run 02-build.yml --repo WenYin-Community/ZedG -f version=v1.26.2
 ```
 
 ## 异步补翻译
@@ -183,7 +183,7 @@ Zed 源码中约 6.5 万条待译字符串的译文为空。这些空值大部�
 
 ```bash
 # 每次补 800 条，并发 5
-gh workflow run 03-retry-translate.yml --repo wenyinos/ZedG \
+gh workflow run 03-retry-translate.yml --repo WenYin-Community/ZedG \
   -f version=v1.26.2 -f limit=800 -f concurrency=5
 ```
 
@@ -344,12 +344,12 @@ zed-globalization/
 
 [MIT](LICENSE)
 
-[stars-url]: https://github.com/wenyinos/ZedG/stargazers
-[stars-image]: https://img.shields.io/github/stars/wenyinos/ZedG?style=flat-square&logo=github
-[download-url]: https://github.com/wenyinos/ZedG/releases/latest
-[download-image]: https://img.shields.io/github/downloads/wenyinos/ZedG/total?style=flat-square&logo=github
-[license-url]: https://github.com/wenyinos/ZedG/blob/main/LICENSE
-[license-image]: https://img.shields.io/github/license/wenyinos/ZedG?style=flat-square
+[stars-url]: https://github.com/WenYin-Community/ZedG/stargazers
+[stars-image]: https://img.shields.io/github/stars/WenYin-Community/ZedG?style=flat-square&logo=github
+[download-url]: https://github.com/WenYin-Community/ZedG/releases/latest
+[download-image]: https://img.shields.io/github/downloads/WenYin-Community/ZedG/total?style=flat-square&logo=github
+[license-url]: https://github.com/WenYin-Community/ZedG/blob/main/LICENSE
+[license-image]: https://img.shields.io/github/license/WenYin-Community/ZedG?style=flat-square
 
 ---
 

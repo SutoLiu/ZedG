@@ -68,7 +68,7 @@ def _build_project_header(
     """生成项目说明头部"""
     lang_name = _LANG_NAMES.get(lang, lang)
     lang_lower = lang.lower()
-    repo = os.environ.get("GITHUB_REPOSITORY", "wenyinos/ZedG")
+    repo = os.environ.get("GITHUB_REPOSITORY", "WenYin-Community/ZedG")
 
     lines = [
         f"## ZedG {version}",

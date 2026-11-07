@@ -1,7 +1,7 @@
 name: 05 更新 Scoop Manifest
 
 # ZedG Release 发布后，自动生成 Windows x64/ARM64 的 Scoop manifest
-# 并推送到 wenyinos/scoop-zedg。需要仓库 Secret: TAP_GITHUB_TOKEN
+# 并推送到 WenYin-Community/scoop-zedg。需要仓库 Secret: TAP_GITHUB_TOKEN
 # （fine-grained PAT，对 scoop-zedg 与 homebrew-zedg 有 Contents 写权限）。
 
 on:
@@ -126,7 +126,7 @@ jobs:
           TAP_PAT: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
           [ -n "$TAP_PAT" ] || { echo "::error::未配置 TAP_GITHUB_TOKEN secret"; exit 1; }
-          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/wenyinos/scoop-zedg.git" /tmp/bucket
+          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/WenYin-Community/scoop-zedg.git" /tmp/bucket
           cd /tmp/bucket
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

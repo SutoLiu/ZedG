@@ -1,7 +1,7 @@
 name: 06 更新 Homebrew Cask
 
 # ZedG Release 发布后，自动生成 macOS aarch64 cask 并推送到
-# wenyinos/homebrew-zedg。需要仓库 Secret: TAP_GITHUB_TOKEN
+# WenYin-Community/homebrew-zedg。需要仓库 Secret: TAP_GITHUB_TOKEN
 # （fine-grained PAT，对 scoop-zedg 与 homebrew-zedg 有 Contents 写权限）。
 
 on:
@@ -112,7 +112,7 @@ jobs:
           TAP_PAT: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
           [ -n "$TAP_PAT" ] || { echo "::error::未配置 TAP_GITHUB_TOKEN secret"; exit 1; }
-          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/wenyinos/homebrew-zedg.git" /tmp/tap
+          git clone --depth 1 "https://x-access-token:${TAP_PAT}@github.com/WenYin-Community/homebrew-zedg.git" /tmp/tap
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
