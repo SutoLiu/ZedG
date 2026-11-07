@@ -332,6 +332,33 @@ zed-globalization/
 3. **引号转义**：译文中的双引号自动转义为 `\"`
 4. **语法修正**：替换后自动将字符串间的中文标点（`、`/`，`/`；`）还原为 ASCII 标点
 
+## 招募共同维护者
+
+ZedG 长期招募共同维护者。项目已迁移至 [WenYin-Community](https://github.com/WenYin-Community) 组织，**邀请加入组织后即开放仓库推送权限**，可直接参与翻译、构建流水线与发布。
+
+**我们需要你**
+- 熟悉 Rust / GitHub Actions，能排查构建与流水线问题（尤其 macOS / Linux 打包）；
+- 或熟悉简体中文技术写作，能审校翻译、维护术语表与文档；
+- 或熟悉 Scoop / Homebrew / AUR / COPR 等分发渠道；
+- 每周能投入少量时间处理 issue、审阅 PR、跟进上游版本。
+
+**你会参与**
+- 审校 AI 翻译，维护 `config/glossary.yaml` 与禁翻清单；
+- 维护 `.github/workflows/` 与打包脚本（Windows / Linux / macOS、NSIS / MSI、Scoop / Homebrew / AUR / COPR）；
+- 跟进上游 Zed 版本，处理构建失败与发布事故；
+- 回复 issue、审阅 PR、完善文档。
+
+**如何加入**
+- 通过 [issue](https://github.com/WenYin-Community/ZedG/issues) 或邮箱 [admin@wenyinos.com](mailto:admin@wenyinos.com) 介绍你的经验与可投入方向；
+- 我们会邀请你加入 [WenYin-Community](https://github.com/WenYin-Community) 组织，开放仓库推送权限；
+- 初期建议先在 issue / PR 中协作，熟悉流程后再直接推送。
+
+**协作约定**
+- 提交前跑测试：`python3 tests/test_zedl10n.py` 与 `python3 -m unittest discover -s tests -p 'test_guardrails.py'`；
+- 打包 / 流水线改动先在分支验证，避免影响自动发布；
+- 翻译改动保留技术标识符与占位符（参考 `config/do_not_translate.json`）；
+- 重大改动先开 issue 讨论。
+
 ## 鸣谢
 
 - [Zed](https://github.com/zed-industries/zed)
