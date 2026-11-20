@@ -338,6 +338,8 @@ GitHub Actions 托管 runner 已验证可直连 `https://index-translate.bilibil
 
 > 注意：`01-translate.yml` 仍读取仓库 Secrets，当前指向其他模型。本次只验证了「直连 API + `zedl10n translate`」最小链路；`scan`、`fix-placeholders`、`release-notes` 以及完整 `01` 流水线尚未用 Index-Translate 端到端运行。切换 Secret 后建议手动触发一次 `01-translate` 确认。
 
+> 回归验证（2026-11-20）：同一组客户端改动（默认 UA + `max_tokens=16384`）对仓库原有 `AI_*` 配置同样返回 `200`，最小翻译输出正常，未发现回归。
+
 ## 项目结构
 
 ```
