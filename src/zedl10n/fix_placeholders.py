@@ -82,6 +82,7 @@ def fix_translation_json(
     client = OpenAI(
         base_url=ai_cfg.base_url,
         api_key=ai_cfg.api_key,
+        default_headers={"User-Agent": "Index-Translate-Client/1.0"},
         max_retries=0,  # 修复失败即删除条目，重试无意义且拖慢整体
         timeout=120.0,
     )

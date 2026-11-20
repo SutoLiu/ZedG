@@ -290,7 +290,11 @@ async def _judge_all(
     """并发调用 AI 判定，每完成一批立即追加到 data["entries"] 并保存进度，返回判定总数。"""
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(base_url=ai_cfg.base_url, api_key=ai_cfg.api_key)
+    client = AsyncOpenAI(
+        base_url=ai_cfg.base_url,
+        api_key=ai_cfg.api_key,
+        default_headers={"User-Agent": "Index-Translate-Client/1.0"},
+    )
     semaphore = asyncio.Semaphore(ai_cfg.concurrency)
     batches = _build_batches(items)
     log.info("AI 判定: %d 条，拆分为 %d 批", len(items), len(batches))

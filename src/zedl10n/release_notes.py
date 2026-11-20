@@ -239,6 +239,7 @@ def translate_notes(
     client = OpenAI(
         base_url=ai_cfg.base_url,
         api_key=ai_cfg.api_key,
+        default_headers={"User-Agent": "Index-Translate-Client/1.0"},
         max_retries=0,  # 重试由 _translate_with_retry 控制
         timeout=120.0,
     )

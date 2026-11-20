@@ -145,7 +145,7 @@ async def _call_ai(
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0,
-                max_tokens=65535,
+                max_tokens=16384,
                 stream=True,
                 extra_body={"thinking": {"type": "disabled"}},
             )
@@ -466,6 +466,7 @@ async def _translate_async(
     client = AsyncOpenAI(
         base_url=ai_cfg.base_url,
         api_key=ai_cfg.api_key,
+        default_headers={"User-Agent": "Index-Translate-Client/1.0"},
         max_retries=0,  # 重试与限流退避统一由 _call_ai 控制，避免 SDK 叠加放大请求量
         timeout=120.0,
     )
