@@ -318,6 +318,26 @@ cd zed && cargo build --release
 
 支持任何 OpenAI 兼容 API。优先级：CLI 参数 > 环境变量 > 默认值。
 
+### Index-Translate 直连（2026-11-20 验证）
+
+GitHub Actions 托管 runner 已验证可直连 `https://index-translate.bilibili.com/v1`，无需代理：
+
+- 直连 `/chat/completions` 返回 `200`
+- `zedl10n translate` 最小用例返回 `200`，`Open Settings` → `打开设置`
+- 修复提交：`f927469 fix(ai): support Index-Translate direct API`
+
+使用 Index-Translate 时必须满足：
+
+| 项目 | 要求 |
+|------|------|
+| `User-Agent` | `Index-Translate-Client/1.0`（所有 OpenAI 客户端已设默认值；SDK 默认 UA 会被 WAF 返回 412） |
+| `max_tokens` | ≤ `16384`（`32768` / `65535` 会返回 `invalid_request`） |
+| `AI_BASE_URL` | `https://index-translate.bilibili.com/v1` |
+| `AI_API_KEY` | 任意，如 `index` |
+| `AI_MODEL` | `Index-Translate-35B-A3B` |
+
+> 注意：`01-translate.yml` 仍读取仓库 Secrets，当前指向其他模型。本次只验证了「直连 API + `zedl10n translate`」最小链路；`scan`、`fix-placeholders`、`release-notes` 以及完整 `01` 流水线尚未用 Index-Translate 端到端运行。切换 Secret 后建议手动触发一次 `01-translate` 确认。
+
 ## 项目结构
 
 ```
